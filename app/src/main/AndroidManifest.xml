@@ -26,6 +26,8 @@
         <activity android:name=".MainActivity">
 
         </activity>
+
+        <service android:name=".MyBluetoothService"/>
     </application>
 
 </manifest>
