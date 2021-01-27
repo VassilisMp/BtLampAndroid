@@ -42,7 +42,7 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
     private val mBluetoothAdapter: BluetoothAdapter? by lazy { BluetoothAdapter.getDefaultAdapter() }
 
     /* service binding code */
-    private lateinit var mService: MyBluetoothService
+    private var mService: MyBluetoothService? = null
     private var mBound: Boolean = false
     private var channelListenJob: Job? = null
 
@@ -50,9 +50,11 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
             prop, old, new ->
         if (new && !mBound) {
             // Bind to LocalService
-            Intent(this, MyBluetoothService::class.java).also { intent ->
-                bindService(intent, connection, Context.BIND_AUTO_CREATE)
-                startService(intent)
+            GlobalScope.launch(Dispatchers.Default) {
+                Intent(this@ColorPickerActivity, MyBluetoothService::class.java).also { intent ->
+                    bindService(intent, connection, Context.BIND_AUTO_CREATE)
+                    startService(intent)
+                }
             }
         }
     }
@@ -64,11 +66,11 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
             // We've bound to LocalService, cast the IBinder and get LocalService instance
             val binder = service as MyBluetoothService.LocalBinder
             mService = binder.service
-            mService.setConnectionListener(object : MyBluetoothService.ConnectionListener {
+            mService?.setConnectionListener(object : MyBluetoothService.ConnectionListener {
                 override fun onConnected() {
                     channelListenJob = GlobalScope.launch(Dispatchers.IO) {
                         // here we print received values using `for` loop (until the channel is closed)
-                        for (string in mService.channel)
+                        for (string in mService!!.channel)
                             Log.d(TAG, "Message received: $string")
                         println("Done!")
                     }
@@ -101,19 +103,20 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
         setContentView(R.layout.activity_color_picker)
         on_off_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                mService.btApi.changePowerInterval(progress.toByte())
+                mService?.btApi?.changePowerInterval(progress.toByte())
             }
+
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
         picker.addSVBar(svbar)
         picker.addOpacityBar(opacitybar)
-        picker.onColorChangedListener = this
+        picker.onColorChangedListener = this@ColorPickerActivity
         random_color.setOnClickListener {
             if ((it as ToggleButton).isChecked) {
-                mService.btApi.enableRandomColor()
+                mService?.btApi?.enableRandomColor()
             } else {
-                mService.btApi.disableRandomColor()
+                mService?.btApi?.disableRandomColor()
             }
         }
         pick_color_seq.setOnClickListener {
@@ -121,9 +124,9 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
         }
         switchButton.setOnClickListener {
             if ((it as ToggleButton).isChecked)
-                mService.btApi.lightOn()
+                mService?.btApi?.lightOn()
             else
-                mService.btApi.lightOff()
+                mService?.btApi?.lightOff()
         }
         schedule_but.setOnClickListener {
             // TODO("show activity for scheduling")
@@ -132,9 +135,9 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
             // TODO("show activity for music")
         }
         /*button.setOnClickListener {
-            text!!.setTextColor(picker.color)
-            picker.oldCenterColor = picker.color
-        }*/
+        text!!.setTextColor(picker.color)
+        picker.oldCenterColor = picker.color
+    }*/
         btPermission()
     }
 
@@ -172,7 +175,7 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
 
 //        text.setTextColor(picker.color)
         textView_color.text = "%02x%02x%02x%02x".format(red, green, blue, alpha)
-        mService.btApi.changeColor(red, green, blue, alpha)
+        mService?.btApi?.changeColor(red, green, blue, alpha)
     }
 
     override fun onActivityResult(
