@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFFFFF"
-    tools:context=".ColorPickerActivity">
+    tools:context=".ui.ColorPickerActivity">
 
     <com.larswerkman.holocolorpicker.ColorPicker
         android:id="@+id/picker"
@@ -56,7 +56,7 @@
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:fillViewport="true"
-        app:layout_constraintBottom_toTopOf="@+id/toggleButton"
+        app:layout_constraintBottom_toTopOf="@+id/switchButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView_color">
@@ -115,28 +115,36 @@
                 android:layout_height="wrap_content"
                 android:text="Pick color sequence" />
 
-            <TextView
-                android:id="@+id/send_message"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="message send" />
-
-            <Button
-                android:id="@+id/send_but"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="send" />
-
         </LinearLayout>
     </ScrollView>
 
     <ToggleButton
-        android:id="@+id/toggleButton"
+        android:id="@+id/switchButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="ToggleButton"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/schedule_but"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Schedule"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/switchButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/scrollView2" />
+
+    <Button
+        android:id="@+id/music_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Music"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/switchButton"
+        app:layout_constraintTop_toBottomOf="@+id/scrollView2" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

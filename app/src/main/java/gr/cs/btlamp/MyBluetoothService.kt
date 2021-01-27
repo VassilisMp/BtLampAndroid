@@ -24,14 +24,7 @@ import java.util.*
 import java.util.concurrent.Executors
 
 
-private const val TAG = "MY_APP_DEBUG_TAG"
-
-// Defines several constants used when transmitting messages between the
-// service and the UI.
-const val MESSAGE_READ: Int = 0
-const val MESSAGE_WRITE: Int = 1
-const val MESSAGE_TOAST: Int = 2
-// ... (Add other message types here as needed.)
+private const val TAG = "MyBluetoothService"
 private const val btDeviceName = "HUAWEI P8 lite"
 private const val STD_UUID = "00001101-0000-1000-8000-00805f9b34fb"
 private const val other_uuid = "0000110a-0000-1000-8000-00805f9b34fb"
@@ -48,6 +41,13 @@ class MyBluetoothService : Service() {
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
     val channel: Channel<String> by lazy { Channel() }
+
+    // listener for interaction with ui, activity
+    interface ConnectionListener {
+        fun onConnected()
+        fun onDisconnected()
+    }
+
     private var connectionListener: ConnectionListener? = null
 
     fun setConnectionListener(listener: ConnectionListener) {
@@ -56,48 +56,15 @@ class MyBluetoothService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-//        Toast.makeText(this, "The new Service was Created", Toast.LENGTH_LONG).show()
+        Log.i(TAG, "$TAG created")
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // For time consuming an long tasks you can launch a new thread here...
-        // Do your Bluetooth Work Here
+        // start Bluetooth service
         GlobalScope.launch { BTinit() }
-//        showToast(" Service Started")
+        Log.i(TAG, "$TAG started")
         return super.onStartCommand(intent, flags, startId)
-    }
-
-    suspend fun BTinit(): Unit = withContext(btDispatcher) {
-        /*val fetchUuidsWithSdp = device?.fetchUuidsWithSdp()
-        Log.d(TAG, fetchUuidsWithSdp.toString())
-        device?.uuids?.forEach {
-            Log.d(TAG, it.uuid.toString())
-        }*/
-        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        val pairedDevices = bluetoothAdapter?.bondedDevices
-        Log.d(TAG, "in BTinit")
-        if (pairedDevices?.isEmpty() == true) showToastC("Pair with device first and retry")
-        else {
-            for (device in pairedDevices!!) {
-                val deviceName = device.name
-//                val deviceHardwareAddress = device.address // MAC address
-                if (deviceName == btDeviceName) {
-                    this@MyBluetoothService.device = device
-                    showToastC("Paired with $deviceName")
-                    bluetoothAdapter.cancelDiscovery()
-                    BTconnect()
-                    return@withContext
-                }
-            }
-            // if not found
-            showToastC("Pair with device first and retry")
-        }
-        snackBarMakeC(
-            "Not paired with device",
-            actionText = "Retry",
-            block = { GlobalScope.launch(Dispatchers.Main) { BTinit() } }
-        )
     }
 
     override fun onDestroy() {
@@ -119,6 +86,42 @@ class MyBluetoothService : Service() {
             get() = this@MyBluetoothService
     }
 
+    // Bluetooth initialize method
+    suspend fun BTinit(): Unit = withContext(btDispatcher) {
+        /*val fetchUuidsWithSdp = device?.fetchUuidsWithSdp()
+        Log.d(TAG, fetchUuidsWithSdp.toString())
+        device?.uuids?.forEach {
+            Log.d(TAG, it.uuid.toString())
+        }*/
+        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        val pairedDevices = bluetoothAdapter?.bondedDevices
+        Log.d(TAG, "in BTinit")
+        if (pairedDevices?.isEmpty() == true) showToastC("Pair with device first and retry")
+        else {
+            // find my lamp
+            for (device in pairedDevices!!) {
+                val deviceName = device.name
+//                val deviceHardwareAddress = device.address // MAC address
+                if (deviceName == btDeviceName) {
+                    this@MyBluetoothService.device = device
+                    showToastC("Paired with $deviceName")
+                    bluetoothAdapter.cancelDiscovery()
+                    // and connect
+                    BTconnect()
+                    return@withContext
+                }
+            }
+            // if not found
+            showToastC("Pair with device first and retry")
+        }
+        snackBarMakeC(
+            "Not paired with device",
+            actionText = "Retry",
+            block = { GlobalScope.launch(Dispatchers.Main) { BTinit() } }
+        )
+    }
+
+    // bluetooth connection function
     @Suppress("BlockingMethodInNonBlockingContext")
     suspend fun BTconnect(): Boolean = withContext(btDispatcher) {
         val socket: BluetoothSocket?
@@ -129,6 +132,7 @@ class MyBluetoothService : Service() {
             outputStream = socket?.outputStream
         } catch (e: IOException) {
             e.printStackTrace()
+            // show reconnect snackbar
             snackBarMakeC(
                 "Could not connect to host",
                 actionText = "Retry",
@@ -136,9 +140,14 @@ class MyBluetoothService : Service() {
             )
             return@withContext false
         }
-//            beginListenForData()
+        launch(Dispatchers.Main) {
+            SnackbarWrapper.make(applicationContext, "Connected", Snackbar.LENGTH_LONG).show()
+            initReceiver()
+            connectionListener?.onConnected()
+        }
         val buffer = ByteArray(1024) // buffer store for the stream
         var bytes = 0 // bytes returned from read()
+        // launch loop in the same thread
         launch(btDispatcher) {
             while (true) {
                 try {
@@ -162,25 +171,23 @@ class MyBluetoothService : Service() {
                 }
             }
         }
-        launch(Dispatchers.Main) {
-            SnackbarWrapper.make(applicationContext, "Connected", Snackbar.LENGTH_LONG).show()
-            initReceiver()
-            connectionListener?.onConnected()
-        }
         return@withContext true
     }
 
     /* Call this from the main activity to send data to the remote device */
     @Suppress("BlockingMethodInNonBlockingContext")
-    fun write(input: String) = GlobalScope.launch(btDispatcher) {
-        val bytes = input.toByteArray() //converts entered String into bytes
+    fun write(bytes: ByteArray) = GlobalScope.launch(btDispatcher) {
         try {
-            outputStream?.write(bytes)
+            outputStream?.write(bytes) ?: throw IOException("not Connected")
         } catch (e: IOException) {
             Log.e("Send Error", "Unable to send message", e)
-            showToast("Unable to send message")
         }
     }
+
+    @JvmName("writeVarArgs")
+    fun write(vararg elements: Byte) = write(elements)
+
+    fun write(input: String) = write(input.toByteArray())
 
     private fun initReceiver() {
         val filter = IntentFilter()
@@ -206,8 +213,29 @@ class MyBluetoothService : Service() {
         }
     }
 
-    interface ConnectionListener {
-        fun onConnected()
-        fun onDisconnected()
+    val btApi: BtApi by lazy { BtApi() }
+
+    inner class BtApi {
+        fun changeColor(red: Byte, green: Byte, blue: Byte, alpha: Byte) =
+                write(CHANGE_COLOR, red, green, blue, alpha)
+        fun changePowerInterval(interval: Byte) = write(CHANGE_POWER_INTERVAL, interval)
+        fun enableRandomColor() = write(ENABLE_RANDOM_COLOR)
+        fun disableRandomColor() = write(DISABLE_RANDOM_COLOR)
+        fun submitColorSequence(vararg colors: Byte) = write(SUBMIT_COLOR_SEQUENCE, *colors)
+        fun lightOn() = write(LIGHT_ON)
+        fun lightOff() = write(LIGHT_OFF)
+        fun pumpOn() = write(PUMP_ON)
+        fun pumpOff() = write(PUMP_OFF)
     }
 }
+
+// Bluetooth codes
+private const val CHANGE_COLOR = 'c'.toByte()
+private const val CHANGE_POWER_INTERVAL = 'i'.toByte()
+private val ENABLE_RANDOM_COLOR = "re".toByteArray()
+private val DISABLE_RANDOM_COLOR = "rd".toByteArray()
+private const val SUBMIT_COLOR_SEQUENCE = 's'.toByte()
+private const val LIGHT_ON = 'L'.toByte()
+private const val LIGHT_OFF = 'l'.toByte()
+private const val PUMP_ON = 'P'.toByte()
+private const val PUMP_OFF = 'p'.toByte()

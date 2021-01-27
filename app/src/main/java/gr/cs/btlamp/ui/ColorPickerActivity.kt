@@ -1,8 +1,7 @@
-package gr.cs.btlamp
+package gr.cs.btlamp.ui
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothSocket
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -17,29 +16,23 @@ import android.view.animation.Transformation
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.SeekBar
-import android.widget.TextView
+import android.widget.ToggleButton
 import androidx.appcompat.app.AppCompatActivity
 import com.larswerkman.holocolorpicker.ColorPicker
-import com.larswerkman.holocolorpicker.OpacityBar
-import com.larswerkman.holocolorpicker.SVBar
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
-import java.util.concurrent.Executors
+import gr.cs.btlamp.MyBluetoothService
+import gr.cs.btlamp.R
+import gr.cs.btlamp.showToast
+import kotlinx.android.synthetic.main.activity_color_picker.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlin.properties.Delegates
 
 
 private const val TAG = "ColorPickerActivity"
 private const val REQUEST_ENABLE_BT: Int = 1
 class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
-
-    private lateinit var picker: ColorPicker
-    private lateinit var svBar: SVBar
-    private lateinit var opacityBar: OpacityBar
-    private lateinit var onOffBar: SeekBar
-    private lateinit var text: TextView
 
     private lateinit var nestedLinLt: LinearLayout
     private lateinit var btn: Button
@@ -106,14 +99,38 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_color_picker)
-        picker = findViewById(R.id.picker)
-        svBar = findViewById(R.id.svbar)
-        opacityBar = findViewById(R.id.opacitybar)
-        text = findViewById(R.id.textView_color)
-        onOffBar = findViewById(R.id.on_off_bar)
-        picker.addSVBar(svBar)
-        picker.addOpacityBar(opacityBar)
+        on_off_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                mService.btApi.changePowerInterval(progress.toByte())
+            }
+            override fun onStartTrackingTouch(p0: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+        picker.addSVBar(svbar)
+        picker.addOpacityBar(opacitybar)
         picker.onColorChangedListener = this
+        random_color.setOnClickListener {
+            if ((it as ToggleButton).isChecked) {
+                mService.btApi.enableRandomColor()
+            } else {
+                mService.btApi.disableRandomColor()
+            }
+        }
+        pick_color_seq.setOnClickListener {
+            // TODO("show activity for color")
+        }
+        switchButton.setOnClickListener {
+            if ((it as ToggleButton).isChecked)
+                mService.btApi.lightOn()
+            else
+                mService.btApi.lightOff()
+        }
+        schedule_but.setOnClickListener {
+            // TODO("show activity for scheduling")
+        }
+        music_btn.setOnClickListener {
+            // TODO("show activity for music")
+        }
         /*button.setOnClickListener {
             text!!.setTextColor(picker.color)
             picker.oldCenterColor = picker.color
@@ -147,15 +164,15 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
     @SuppressLint("SetTextI18n")
     override fun onColorChanged(color: Int) {
         //gives the color when it's changed.
-//        Toast.makeText(this, """color: $color""", Toast.LENGTH_SHORT).show()
         picker.oldCenterColor = picker.color
-        val red = Color.red(picker.color)
-        val green = Color.green(picker.color)
-        val blue = Color.blue(picker.color)
-        val alpha = Color.alpha(picker.color)
+        val red = Color.red(picker.color).toByte()
+        val green = Color.green(picker.color).toByte()
+        val blue = Color.blue(picker.color).toByte()
+        val alpha = Color.alpha(picker.color).toByte()
 
 //        text.setTextColor(picker.color)
-        text.text = "%02x%02x%02x%02x".format(red, green, blue, alpha)
+        textView_color.text = "%02x%02x%02x%02x".format(red, green, blue, alpha)
+        mService.btApi.changeColor(red, green, blue, alpha)
     }
 
     override fun onActivityResult(
