@@ -22,7 +22,7 @@ import com.larswerkman.holocolorpicker.ColorPicker
 import gr.cs.btlamp.MyBluetoothService
 import gr.cs.btlamp.R
 import gr.cs.btlamp.showToast
-import kotlinx.android.synthetic.main.activity_color_picker.*
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
@@ -32,7 +32,7 @@ import kotlin.properties.Delegates
 
 private const val TAG = "ColorPickerActivity"
 private const val REQUEST_ENABLE_BT: Int = 1
-class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
+class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
 
     private lateinit var nestedLinLt: LinearLayout
     private lateinit var btn: Button
@@ -51,7 +51,7 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
         if (new && !mBound) {
             // Bind to LocalService
             GlobalScope.launch(Dispatchers.Default) {
-                Intent(this@ColorPickerActivity, MyBluetoothService::class.java).also { intent ->
+                Intent(this@MainActivity, MyBluetoothService::class.java).also { intent ->
                     bindService(intent, connection, Context.BIND_AUTO_CREATE)
                     startService(intent)
                 }
@@ -100,7 +100,7 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_color_picker)
+        setContentView(R.layout.activity_main)
         on_off_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 mService?.btApi?.changePowerInterval(progress.toByte())
@@ -111,7 +111,7 @@ class ColorPickerActivity : AppCompatActivity(), ColorPicker.OnColorChangedListe
         })
         picker.addSVBar(svbar)
         picker.addOpacityBar(opacitybar)
-        picker.onColorChangedListener = this@ColorPickerActivity
+        picker.onColorChangedListener = this@MainActivity
         random_color.setOnClickListener {
             if ((it as ToggleButton).isChecked) {
                 mService?.btApi?.enableRandomColor()
