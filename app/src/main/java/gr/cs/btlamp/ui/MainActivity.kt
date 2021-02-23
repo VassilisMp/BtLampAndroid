@@ -30,8 +30,10 @@ import kotlinx.coroutines.launch
 import kotlin.properties.Delegates
 
 
-private const val TAG = "ColorPickerActivity"
+private const val TAG = "MainActivity"
 private const val REQUEST_ENABLE_BT: Int = 1
+internal const val REQUEST_COLOR_SEQUENCE: Int = 2
+internal const val SEQUENCE: String = "sequence"
 class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
 
     private lateinit var nestedLinLt: LinearLayout
@@ -46,8 +48,7 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
     private var mBound: Boolean = false
     private var channelListenJob: Job? = null
 
-    var btEnabled: Boolean by Delegates.observable(false) {
-            prop, old, new ->
+    private var btEnabled: Boolean by Delegates.observable(false) { prop, old, new ->
         if (new && !mBound) {
             // Bind to LocalService
             GlobalScope.launch(Dispatchers.Default) {
@@ -58,6 +59,8 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
             }
         }
     }
+
+    private var colorSequence: IntArray? = null
 
     /** Defines callbacks for service binding, passed to bindService()  */
     private val connection = object : ServiceConnection {
@@ -120,7 +123,7 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
             }
         }
         pick_color_seq.setOnClickListener {
-            // TODO("show activity for color")
+            startActivityForResult(Intent(this, SequencePickerActivity::class.java), REQUEST_COLOR_SEQUENCE)
         }
         switchButton.setOnClickListener {
             if ((it as ToggleButton).isChecked)
@@ -183,14 +186,22 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
             resultCode: Int,
             data: Intent?
     ) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 1) {
-            if (resultCode == RESULT_OK) {
-                btEnabled = true
-            } else if (resultCode == RESULT_CANCELED) {
-                finish()
+        Log.d(TAG, this::onActivityResult.name)
+        when (requestCode) {
+            REQUEST_ENABLE_BT -> {
+                when (resultCode) {
+                    RESULT_OK -> btEnabled = true
+                    RESULT_CANCELED -> finish()
+                }
+            }
+            REQUEST_COLOR_SEQUENCE -> {
+                Log.d(TAG, "REQUEST_COLOR_SEQUENCE")
+                colorSequence = data?.getIntArrayExtra(SEQUENCE)
+                colorSequence?.forEach {
+                    Log.d(TAG, "$it") }
             }
         }
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     inner class DropDownAnim(
