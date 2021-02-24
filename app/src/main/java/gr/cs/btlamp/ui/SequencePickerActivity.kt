@@ -4,6 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.ItemTouchHelper.*
+import androidx.recyclerview.widget.RecyclerView
 import com.larswerkman.holocolorpicker.ColorPicker
 import gr.cs.btlamp.R
 import kotlinx.android.synthetic.main.activity_sequence_picker.*
@@ -11,6 +14,12 @@ import kotlinx.android.synthetic.main.activity_sequence_picker.*
 
 private const val TAG = "SequencePickerActivity"
 class SequencePickerActivity : AppCompatActivity() {
+
+    /*private val itemTouchHelper by lazy {  // 1. Note that I am specifying all 4 directions.
+        //    Specifying START and END also allows
+        //    more organic dragging than just specifying UP and DOWN.
+        ItemTouchHelper(ColorsAdapter.ItemTouchHelperCallback())
+    }*/
 
     private var currentColor: Int = 0
     private lateinit var colorsAdapter: ColorsAdapter
@@ -24,6 +33,7 @@ class SequencePickerActivity : AppCompatActivity() {
             adapter = colorsAdapter
 //            addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.HORIZONTAL))
             setHasFixedSize(false)
+            colorsAdapter.itemTouchHelper.attachToRecyclerView(this)
         }
         //to turn of showing the old color
         picker.run {

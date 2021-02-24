@@ -4,12 +4,13 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import androidx.cardview.widget.CardView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import gr.cs.btlamp.R
+import java.util.*
+import kotlin.collections.ArrayList
 
 private const val TAG = "ColorsAdapter"
 
@@ -27,29 +28,12 @@ class ColorsAdapter(val colorList: ArrayList<Color> = ArrayList()) :
      * (custom ViewHolder).
      */
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val holderView: View = view
-        val cardView = view.findViewById<CardView>(R.id.color_cardview)
-        val layout: ConstraintLayout = view.findViewById(R.id.background_layout)
-        val removeImage: ImageView = view.findViewById(R.id.remove_image)
+        private val cardView = view.findViewById<CardView>(R.id.color_cardview)
         var color: Color? = null
 
-        fun bind(color: Color, position: Int) {
+        fun bind(color: Color) {
             this.color = color
-//            layout.setBackgroundColor(color.color)
-//            holderView.setBackgroundColor(color.color)
-//            layout.setBackgroundColor(color.color)
             cardView.setCardBackgroundColor(color.color)
-            removeImage.setOnClickListener {
-                Log.d(TAG, "removeImage onClick ")
-                /*val newList = this@ColorsAdapter.currentList.toMutableList().apply {
-                    remove(color)
-                }
-                submitList(newList)*/
-                colorList.remove(color)
-//                notifyItemRemoved(position)
-                // TODO don't use notifyDataSetChanged
-                notifyDataSetChanged()
-            }
         }
     }
 
@@ -69,10 +53,71 @@ class ColorsAdapter(val colorList: ArrayList<Color> = ArrayList()) :
         Log.d(TAG, "position $position")
 //        val color = getItem(position)
         val color = colorList[position]
-        viewHolder.bind(color, position)
+        viewHolder.bind(color)
     }
 
     override fun getItemCount() = colorList.size
+
+    fun moveItem(from: Int, to: Int) = Collections.swap(colorList, from, to)
+
+    fun removeItem(index: Int) = colorList.removeAt(index)
+
+    inner class ItemTouchHelperCallback : ItemTouchHelper.SimpleCallback(
+        ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.START or ItemTouchHelper.END,
+        ItemTouchHelper.UP or ItemTouchHelper.DOWN
+    ) {
+
+        override fun onMove(recyclerView: RecyclerView,
+                            viewHolder: RecyclerView.ViewHolder,
+                            target: RecyclerView.ViewHolder): Boolean {
+
+            val adapter = recyclerView.adapter as ColorsAdapter
+            val from = viewHolder.adapterPosition
+            val to = target.adapterPosition      // 2. Update the backing model. Custom implementation in
+            //    MainRecyclerViewAdapter. You need to implement
+            //    reordering of the backing model inside the method.
+            adapter.moveItem(from, to)      // 3. Tell adapter to render the model update.
+            adapter.notifyItemMoved(from, to)
+
+            return true
+        }
+
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder,
+                              direction: Int) {
+            Log.d(TAG, this::onSwiped.name)
+//            if (direction == ItemTouchHelper.UP) {
+                val position = viewHolder.adapterPosition
+                this@ColorsAdapter.removeItem(position)
+                this@ColorsAdapter.notifyItemRemoved(position)
+//            }
+            // 4. Code block for horizontal swipe.
+            //    ItemTouchHelper handles horizontal swipe as well, but
+            //    it is not relevant with reordering. Ignoring here.
+        }
+
+        // 1. This callback is called when a ViewHolder is selected.
+        //    We highlight the ViewHolder here.
+        override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?,
+                                       actionState: Int) {
+            super.onSelectedChanged(viewHolder, actionState)
+
+            if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                viewHolder?.itemView?.alpha = 0.5f
+            }
+        }
+
+        // 2. This callback is called when the ViewHolder is
+        //    unselected (dropped). We unhighlight the ViewHolder here.
+        override fun clearView(recyclerView: RecyclerView,
+                               viewHolder: RecyclerView.ViewHolder) {
+            super.clearView(recyclerView, viewHolder)
+            viewHolder.itemView.alpha = 1.0f
+        }
+    }
+
+    val itemTouchHelper: ItemTouchHelper by lazy {
+        ItemTouchHelper(ItemTouchHelperCallback())
+    }
 }
 
 object DiffCallback : DiffUtil.ItemCallback<Color>() {
