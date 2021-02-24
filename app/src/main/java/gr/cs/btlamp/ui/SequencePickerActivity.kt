@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.DividerItemDecoration
 import com.larswerkman.holocolorpicker.ColorPicker
 import gr.cs.btlamp.R
 import kotlinx.android.synthetic.main.activity_sequence_picker.*
@@ -24,6 +23,7 @@ class SequencePickerActivity : AppCompatActivity() {
         colors_rv.apply {
             adapter = colorsAdapter
 //            addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.HORIZONTAL))
+            setHasFixedSize(false)
         }
         //to turn of showing the old color
         picker.run {
@@ -31,14 +31,18 @@ class SequencePickerActivity : AppCompatActivity() {
             addSVBar(svbar)
             addOpacityBar(opacitybar)
             onColorChangedListener = ColorPicker.OnColorChangedListener { currentColor = it }
+            // init currentColor
+            currentColor = color
         }
         pick_button.setOnClickListener {
-            val newList = colorsAdapter.currentList.toMutableList().apply {
+            /*val newList = colorsAdapter.currentList.toMutableList().apply {
                 add(Color(currentColor))
             }
-            colorsAdapter.submitList(newList)
+            colorsAdapter.submitList(newList)*/
+            colorsAdapter.colorList.add(Color(currentColor))
             // TODO don' t use notifyDataSetChanged
             colorsAdapter.notifyDataSetChanged()
+//            colorsAdapter.notifyItemInserted(colorsAdapter.colorList.lastIndex)
             /*listItems.add(Color(currentColor))
             adapter!!.notifyDataSetChanged()*/
 //            colorArrayAdapter.add(Color(currentColor))
@@ -50,7 +54,7 @@ class SequencePickerActivity : AppCompatActivity() {
     private fun returnResult() {
         Log.d(TAG, ::returnResult.name)
         setResult(REQUEST_COLOR_SEQUENCE,
-            Intent().apply { putExtra(SEQUENCE, colorsAdapter.currentList.map { it.color }.toIntArray()) })
+            Intent().apply { putExtra(SEQUENCE, colorsAdapter.colorList.map { it.color }.toIntArray()) })
         finish()
     }
 }
