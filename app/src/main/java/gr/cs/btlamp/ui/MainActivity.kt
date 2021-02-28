@@ -1,3 +1,4 @@
+
 package gr.cs.btlamp.ui
 
 import android.annotation.SuppressLint
@@ -16,7 +17,6 @@ import android.view.animation.Transformation
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.SeekBar
-import android.widget.ToggleButton
 import androidx.appcompat.app.AppCompatActivity
 import com.larswerkman.holocolorpicker.ColorPicker
 import gr.cs.btlamp.MyBluetoothService
@@ -34,7 +34,7 @@ private const val TAG = "MainActivity"
 private const val REQUEST_ENABLE_BT: Int = 1
 internal const val REQUEST_COLOR_SEQUENCE: Int = 2
 internal const val SEQUENCE: String = "sequence"
-class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
+class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, View.OnClickListener {
 
     private lateinit var nestedLinLt: LinearLayout
     private lateinit var btn: Button
@@ -47,6 +47,8 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
     private var mService: MyBluetoothService? = null
     private var mBound: Boolean = false
     private var channelListenJob: Job? = null
+    private val power: Boolean
+        get() = switchButton.isChecked
 
     private var btEnabled: Boolean by Delegates.observable(false) { prop, old, new ->
         if (new && !mBound) {
@@ -100,47 +102,33 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
         mBound = false
     }
 
-
+    @ExperimentalUnsignedTypes
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         on_off_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                mService?.btApi?.changePowerInterval(progress.toByte())
+                mService?.btApi?.changePowerInterval(progress.toUInt())
             }
 
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-        picker.addSVBar(svbar)
-        picker.addOpacityBar(opacitybar)
-        picker.onColorChangedListener = this@MainActivity
-        random_color.setOnClickListener {
-            if ((it as ToggleButton).isChecked) {
-                mService?.btApi?.enableRandomColor()
-            } else {
-                mService?.btApi?.disableRandomColor()
-            }
+        picker.run {
+            addSVBar(svbar)
+            addOpacityBar(opacitybar)
+            onColorChangedListener = this@MainActivity
+            showOldCenterColor = false
         }
-        pick_color_seq.setOnClickListener {
-            startActivityForResult(Intent(this, SequencePickerActivity::class.java), REQUEST_COLOR_SEQUENCE)
-        }
-        switchButton.setOnClickListener {
-            if ((it as ToggleButton).isChecked)
-                mService?.btApi?.lightOn()
-            else
-                mService?.btApi?.lightOff()
-        }
+        random_color.setOnClickListener(this)
+        pick_color_seq.setOnClickListener(this)
+        switchButton.setOnClickListener(this)
         schedule_but.setOnClickListener {
             // TODO("show activity for scheduling")
         }
         music_btn.setOnClickListener {
             // TODO("show activity for music")
         }
-        /*button.setOnClickListener {
-        text!!.setTextColor(picker.color)
-        picker.oldCenterColor = picker.color
-    }*/
         btPermission()
     }
 
@@ -170,7 +158,6 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
     @SuppressLint("SetTextI18n")
     override fun onColorChanged(color: Int) {
         //gives the color when it's changed.
-        picker.oldCenterColor = picker.color
         val red = Color.red(picker.color).toByte()
         val green = Color.green(picker.color).toByte()
         val blue = Color.blue(picker.color).toByte()
@@ -178,7 +165,7 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
 
 //        text.setTextColor(picker.color)
         textView_color.text = "%02x%02x%02x%02x".format(red, green, blue, alpha)
-        mService?.btApi?.changeColor(red, green, blue, alpha)
+        if (power) mService?.btApi?.changeColor(red, green, blue, alpha)
     }
 
     override fun onActivityResult(
@@ -226,5 +213,27 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener {
             return true
         }
 
+    }
+
+    override fun onClick(view: View?) {
+        when(view) {
+            random_color -> {
+                if (random_color.isChecked) {
+                    mService?.btApi?.enableRandomColor()
+                } else {
+                    mService?.btApi?.disableRandomColor()
+                }
+            }
+            pick_color_seq -> startActivityForResult(
+                Intent(this, SequencePickerActivity::class.java),
+                REQUEST_COLOR_SEQUENCE
+            )
+            switchButton -> {
+                if (switchButton.isChecked)
+                    mService?.btApi?.enableLight()
+                else
+                    mService?.btApi?.disableLight()
+            }
+        }
     }
 }

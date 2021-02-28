@@ -11,9 +11,7 @@ import android.content.IntentFilter
 import android.os.Binder
 import android.os.IBinder
 import android.util.Log
-import android.widget.Toast
 import androidx.annotation.Nullable
-import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -25,11 +23,12 @@ import java.util.concurrent.Executors
 
 
 private const val TAG = "MyBluetoothService"
-private const val btDeviceName = "HUAWEI P8 lite"
-private const val STD_UUID = "00001101-0000-1000-8000-00805f9b34fb"
+//private const val btDeviceName = "HUAWEI P8 lite"
+private const val btDeviceName = "HC05"
+const val STD_UUID = "00001101-0000-1000-8000-00805f9b34fb"
 private const val other_uuid = "0000110a-0000-1000-8000-00805f9b34fb"
-private val PORT_UUID =
-    UUID.fromString(other_uuid) //Serial Port Service ID
+val PORT_UUID: UUID =
+    UUID.fromString(STD_UUID) //Serial Port Service ID
 private const val HUAWEI_MAC = "8C:25:05:0E:CB:06"
 private const val XIAOMI_MAC = "18:F0:E4:E0:A3:16"
 val btDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
@@ -178,7 +177,7 @@ class MyBluetoothService : Service() {
     @Suppress("BlockingMethodInNonBlockingContext")
     fun write(bytes: ByteArray) = GlobalScope.launch(btDispatcher) {
         try {
-            outputStream?.write(bytes) ?: throw IOException("not Connected")
+            outputStream?.write(bytes + '\n'.toByte()) ?: throw IOException("not Connected")
         } catch (e: IOException) {
             Log.e("Send Error", "Unable to send message", e)
         }
@@ -215,27 +214,42 @@ class MyBluetoothService : Service() {
 
     val btApi: BtApi by lazy { BtApi() }
 
+    // TODO finish API
     inner class BtApi {
         fun changeColor(red: Byte, green: Byte, blue: Byte, alpha: Byte) =
                 write(CHANGE_COLOR, red, green, blue, alpha)
-        fun changePowerInterval(interval: Byte) = write(CHANGE_POWER_INTERVAL, interval)
-        fun enableRandomColor() = write(ENABLE_RANDOM_COLOR)
+        @ExperimentalUnsignedTypes
+        // UInt size is 32-bit, In C lang unsigned long is 32-bit
+        fun changePowerInterval(interval: UInt) = write(CHANGE_POWER_INTERVAL, *interval.toByteArray())
+        fun enableRandomColorContinuous() = write(ENABLE_RANDOM_COLOR, 0.toByte())
+        fun enableRandomColor() = write(ENABLE_RANDOM_COLOR, 1.toByte())
+        fun enableRandomColor2() = write(ENABLE_RANDOM_COLOR, 2.toByte())
         fun disableRandomColor() = write(DISABLE_RANDOM_COLOR)
         fun submitColorSequence(vararg colors: Byte) = write(SUBMIT_COLOR_SEQUENCE, *colors)
-        fun lightOn() = write(LIGHT_ON)
-        fun lightOff() = write(LIGHT_OFF)
-        fun pumpOn() = write(PUMP_ON)
-        fun pumpOff() = write(PUMP_OFF)
+        fun enableLight() = write(ENABLE_LIGHT)
+        fun disableLight() = write(DISABLE_LIGHT)
+        fun enablePump() = write(ENABLE_PUMP)
+        fun disablePump() = write(DISABLE_PUMP)
+        fun enableSine() = write(ENABLE_SINE)
+        fun enableCosine() = write(ENABLE_COSINE)
+        fun enableTangent() = write(ENABLE_TANGENT)
+        fun enableSquare() = write(ENABLE_SQUARE)
+        fun enableTriangle() = write(ENABLE_TRIANGLE)
     }
 }
 
 // Bluetooth codes
 private const val CHANGE_COLOR = 'c'.toByte()
 private const val CHANGE_POWER_INTERVAL = 'i'.toByte()
-private val ENABLE_RANDOM_COLOR = "re".toByteArray()
-private val DISABLE_RANDOM_COLOR = "rd".toByteArray()
+private const val ENABLE_RANDOM_COLOR = 'R'.toByte()
+private const val DISABLE_RANDOM_COLOR = 'r'.toByte()
 private const val SUBMIT_COLOR_SEQUENCE = 's'.toByte()
-private const val LIGHT_ON = 'L'.toByte()
-private const val LIGHT_OFF = 'l'.toByte()
-private const val PUMP_ON = 'P'.toByte()
-private const val PUMP_OFF = 'p'.toByte()
+private const val ENABLE_LIGHT = 'L'.toByte()
+private const val DISABLE_LIGHT = 'l'.toByte()
+private const val ENABLE_PUMP = 'P'.toByte()
+private const val DISABLE_PUMP = 'p'.toByte()
+private const val ENABLE_SINE = '1'.toByte()
+private const val ENABLE_COSINE = '2'.toByte()
+private const val ENABLE_TANGENT = '3'.toByte()
+private const val ENABLE_SQUARE = '4'.toByte()
+private const val ENABLE_TRIANGLE = '5'.toByte()

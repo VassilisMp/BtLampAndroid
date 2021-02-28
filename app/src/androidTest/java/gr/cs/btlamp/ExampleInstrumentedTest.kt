@@ -1,5 +1,7 @@
 package gr.cs.btlamp
 
+import androidx.lifecycle.Lifecycle
+import androidx.test.core.app.ActivityScenario.launch
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
@@ -20,5 +22,9 @@ class ExampleInstrumentedTest {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("gr.cs.btlamp", appContext.packageName)
+        val scenario = launch(BtServerActivity::class.java)
+        scenario.moveToState(Lifecycle.State.STARTED)
+//        scenario.result
+//        scenario.state
     }
 }
