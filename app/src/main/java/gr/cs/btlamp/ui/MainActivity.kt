@@ -14,15 +14,10 @@ import android.util.Log
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.Transformation
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.SeekBar
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.larswerkman.holocolorpicker.ColorPicker
-import gr.cs.btlamp.MyBluetoothService
-import gr.cs.btlamp.R
-import gr.cs.btlamp.showToast
-import gr.cs.btlamp.showToastC
+import gr.cs.btlamp.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -109,9 +104,55 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter(this, android.R.layout.simple_spinner_item, periodicFunNames).also { adapter ->
+            // Specify the layout to use when the list of choices appears
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            // Apply the adapter to the spinner
+            spinner_periodic_fun.adapter = adapter
+            spinner_periodic_fun.setSelection(adapter.getPosition(SQUARE))
+            spinner_periodic_fun.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
+                    when(parent.getItemAtPosition(pos).toString()) {
+                        SINE -> mService?.btApi?.enableSine()
+                        COSINE -> mService?.btApi?.enableCosine()
+                        TANGENT -> mService?.btApi?.enableTangent()
+                        SQUARE -> mService?.btApi?.enableSquare()
+                        TRIANGLE -> mService?.btApi?.enableTriangle()
+                    }
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>) {}
+            }
+        }
+        ArrayAdapter(this, android.R.layout.simple_spinner_item, RANDOM_MODES).run {
+            // Specify the layout to use when the list of choices appears
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            // Apply the adapter to the spinner
+            spinner_random_modes.adapter = this
+            spinner_random_modes.setSelection(this.getPosition(RANDOM_COLOR_1))
+            spinner_random_modes.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
+                    when(parent.getItemAtPosition(pos).toString()) {
+                        RANDOM_COLOR_0 -> mService?.btApi?.enableRandomColorContinuous()
+                        RANDOM_COLOR_1 -> mService?.btApi?.enableRandomColor()
+                        RANDOM_COLOR_2 -> mService?.btApi?.enableRandomColor2()
+                    }
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>) {}
+            }
+        }
         on_off_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                mService?.btApi?.changePowerInterval(progress.toUInt())
+                val newProgress = if (progress > 0) {
+                    spinner_periodic_fun.visibility = View.VISIBLE
+                    progress + 80
+                } else {
+                    spinner_periodic_fun.visibility = View.GONE
+                    0
+                }
+                mService?.btApi?.changePowerInterval(newProgress.toUInt())
             }
 
             override fun onStartTrackingTouch(p0: SeekBar?) {}
@@ -222,8 +263,13 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
         when(view) {
             random_color -> {
                 if (random_color.isChecked) {
-                    mService?.btApi?.enableRandomColor()
+                    spinner_random_modes.run {
+                        // reselect the selected item to run the proper btApi function
+                        onItemSelectedListener?.onItemSelected(this, selectedView, selectedItemPosition, selectedItemId)
+                        visibility = View.VISIBLE
+                    }
                 } else {
+                    spinner_random_modes.visibility = View.GONE
                     mService?.btApi?.disableRandomColor()
                 }
             }

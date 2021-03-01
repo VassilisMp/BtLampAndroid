@@ -47,9 +47,19 @@
         android:text="Text Color"
         android:textColor="@android:color/widget_edittext_dark"
         android:textSize="20sp"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/opacitybar" />
+
+    <View
+        android:id="@+id/view"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#80000000"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView_color" />
 
     <ScrollView
         android:id="@+id/scrollView2"
@@ -59,17 +69,13 @@
         app:layout_constraintBottom_toTopOf="@+id/switchButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView_color">
+        app:layout_constraintTop_toBottomOf="@+id/view">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="2dp"
-                android:background="#80000000" />
+            android:orientation="vertical"
+            android:padding="2dp">
 
             <TextView
                 android:id="@+id/on_off_text"
@@ -82,31 +88,36 @@
                 android:id="@+id/on_off_bar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
                 android:max="29020" />
+
+            <Spinner
+                android:id="@+id/spinner_periodic_fun"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
 
             <View
                 android:layout_width="match_parent"
-                android:layout_height="2dp"
+                android:layout_height="1dp"
+                android:layout_marginTop="2dp"
                 android:background="#80000000" />
-
-            <TextView
-                android:id="@+id/rand_color_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Random Color"
-                android:textAlignment="center" />
 
             <ToggleButton
                 android:id="@+id/random_color"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Random Color" />
+                android:textOff="Random Color"
+                android:textOn="Random Color" />
+
+            <Spinner
+                android:id="@+id/spinner_random_modes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
 
             <View
                 android:layout_width="match_parent"
-                android:layout_height="2dp"
+                android:layout_height="1dp"
                 android:background="#80000000" />
 
             <Button

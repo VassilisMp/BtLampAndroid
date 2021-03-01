@@ -215,3 +215,17 @@ private const val ENABLE_COSINE = '2'.toByte()
 private const val ENABLE_TANGENT = '3'.toByte()
 private const val ENABLE_SQUARE = '4'.toByte()
 private const val ENABLE_TRIANGLE = '5'.toByte()
+
+const val SINE = "Sine"
+const val COSINE = "Cosine"
+const val TANGENT = "Tangent"
+const val SQUARE = "Square"
+const val TRIANGLE = "Triangle"
+
+val periodicFunNames = listOf(SINE, COSINE, TANGENT, SQUARE, TRIANGLE)
+
+const val RANDOM_COLOR_0 = "Continuous change"
+const val RANDOM_COLOR_1 = "Change on T"
+const val RANDOM_COLOR_2 = "Change on T/2"
+
+val RANDOM_MODES = listOf(RANDOM_COLOR_0, RANDOM_COLOR_1, RANDOM_COLOR_2)
