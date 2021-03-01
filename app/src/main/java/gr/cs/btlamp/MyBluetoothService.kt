@@ -35,7 +35,7 @@ val btDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
 class MyBluetoothService : Service() {
 
-    private var mBluetoothAdapter: BluetoothAdapter? = null
+    private val bluetoothAdapter: BluetoothAdapter? by lazy { BluetoothAdapter.getDefaultAdapter() }
     private var device: BluetoothDevice? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
@@ -56,12 +56,11 @@ class MyBluetoothService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "$TAG created")
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // start Bluetooth service
-        GlobalScope.launch { BTinit() }
+        BTconnect()
         Log.i(TAG, "$TAG started")
         return super.onStartCommand(intent, flags, startId)
     }
@@ -72,10 +71,7 @@ class MyBluetoothService : Service() {
     }
 
     @Nullable
-    override fun onBind(intent: Intent?): IBinder {
-        //mHandler = getApplication().getHandler();
-        return mBinder
-    }
+    override fun onBind(intent: Intent?): IBinder = mBinder
 
     private val mBinder: IBinder = LocalBinder()
 
@@ -85,92 +81,56 @@ class MyBluetoothService : Service() {
             get() = this@MyBluetoothService
     }
 
-    // Bluetooth initialize method
-    suspend fun BTinit(): Unit = withContext(btDispatcher) {
+    // bluetooth connection function
+    @Suppress("BlockingMethodInNonBlockingContext")
+    fun BTconnect(): Job = GlobalScope.launch(btDispatcher) {
         /*val fetchUuidsWithSdp = device?.fetchUuidsWithSdp()
         Log.d(TAG, fetchUuidsWithSdp.toString())
         device?.uuids?.forEach {
             Log.d(TAG, it.uuid.toString())
         }*/
-        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        val pairedDevices = bluetoothAdapter?.bondedDevices
-        Log.d(TAG, "in BTinit")
-        if (pairedDevices?.isEmpty() == true) showToastC("Pair with device first and retry")
-        else {
-            // find my lamp
-            for (device in pairedDevices!!) {
-                val deviceName = device.name
-//                val deviceHardwareAddress = device.address // MAC address
-                if (deviceName == btDeviceName) {
-                    this@MyBluetoothService.device = device
-                    showToastC("Paired with $deviceName")
-                    bluetoothAdapter.cancelDiscovery()
-                    // and connect
-                    BTconnect()
-                    return@withContext
-                }
-            }
-            // if not found
-            showToastC("Pair with device first and retry")
-        }
-        snackBarMakeC(
-            "Not paired with device",
-            actionText = "Retry",
-            block = { GlobalScope.launch(Dispatchers.Main) { BTinit() } }
-        )
-    }
-
-    // bluetooth connection function
-    @Suppress("BlockingMethodInNonBlockingContext")
-    suspend fun BTconnect(): Boolean = withContext(btDispatcher) {
-        val socket: BluetoothSocket?
+        device = bluetoothAdapter?.bondedDevices?.firstOrNull { it.name == btDeviceName }?.apply {
+            bluetoothAdapter?.cancelDiscovery()
+            showToastC("Paired with $btDeviceName")
+        } ?: snackBarMakeC(
+                    "Not paired with device",
+                    actionText = "Retry",
+                    block = { BTconnect() }
+            ).run { return@launch }
         try {
-            socket = device!!.createRfcommSocketToServiceRecord(PORT_UUID)
-            socket.connect()
-            inputStream = socket?.inputStream
-            outputStream = socket?.outputStream
+            val socket = device?.createRfcommSocketToServiceRecord(PORT_UUID)
+            socket?.connect() ?: throw IOException("Couldn't connect")
+            inputStream = socket.inputStream
+            outputStream = socket.outputStream
         } catch (e: IOException) {
             e.printStackTrace()
             // show reconnect snackbar
             snackBarMakeC(
                 "Could not connect to host",
                 actionText = "Retry",
-                block = { GlobalScope.launch(Dispatchers.Main) { BTconnect() } }
+                block = { BTconnect() }
             )
-            return@withContext false
+            return@launch
         }
         launch(Dispatchers.Main) {
             SnackbarWrapper.make(applicationContext, "Connected", Snackbar.LENGTH_LONG).show()
             initReceiver()
             connectionListener?.onConnected()
         }
-        val buffer = ByteArray(1024) // buffer store for the stream
-        var bytes = 0 // bytes returned from read()
         // launch loop in the same thread
         launch(btDispatcher) {
             while (true) {
                 try {
                     if (inputStream!!.available() > 0) {
-                        buffer[bytes] = inputStream!!.read().toByte()
-                        if (buffer[bytes].toChar() == '\n'){
-                            val readMessage = String(buffer, 0, bytes)
-                            bytes = 0
-//                        print(readMessage + "\n")
-                            channel.send(readMessage)
-                        } else {
-                            bytes += 1
-                        }
-//                    val line = bufferedReader.readLine()
-//                    print(stringBuilder.toString() + "\n")
-                    } else {
-                        delay(1)
-                    }
+                        channel.send(inputStream!!.bufferedReader().readLine())
+                    } else delay(1)
                 } catch (e: IOException) {
                     e.printStackTrace()
+                    break
                 }
             }
         }
-        return@withContext true
+        return@launch
     }
 
     /* Call this from the main activity to send data to the remote device */
@@ -180,6 +140,7 @@ class MyBluetoothService : Service() {
             outputStream?.write(bytes + '\n'.toByte()) ?: throw IOException("not Connected")
         } catch (e: IOException) {
             Log.e("Send Error", "Unable to send message", e)
+            showToastC("Unable to send message")
         }
     }
 
@@ -199,14 +160,15 @@ class MyBluetoothService : Service() {
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val action = intent.action
-            val device =
-                    intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+            val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
             if (BluetoothDevice.ACTION_ACL_DISCONNECTED == action) {
                 GlobalScope.launch(Dispatchers.Main) {
                     connectionListener?.onDisconnected()
-                    while (!BTconnect()) {
-                        showToast("Lost bluetooth connection with ${device?.name}, retrying...")
-                    }
+                    snackBarMakeC(
+                            "Lost bluetooth connection with ${device?.name}",
+                            actionText = "Retry",
+                            block = { BTconnect() }
+                    )
                 }
             }
         }

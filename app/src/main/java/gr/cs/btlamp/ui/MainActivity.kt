@@ -22,6 +22,7 @@ import com.larswerkman.holocolorpicker.ColorPicker
 import gr.cs.btlamp.MyBluetoothService
 import gr.cs.btlamp.R
 import gr.cs.btlamp.showToast
+import gr.cs.btlamp.showToastC
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -75,8 +76,10 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
                 override fun onConnected() {
                     channelListenJob = GlobalScope.launch(Dispatchers.IO) {
                         // here we print received values using `for` loop (until the channel is closed)
-                        for (string in mService!!.channel)
+                        for (string in mService!!.channel) {
                             Log.d(TAG, "Message received: $string")
+                            showToastC("Message received: $string")
+                        }
                         println("Done!")
                     }
                 }

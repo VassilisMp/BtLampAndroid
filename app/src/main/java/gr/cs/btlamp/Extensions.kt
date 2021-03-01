@@ -35,7 +35,6 @@ suspend inline fun Context.snackBarMakeC(
             setAction(actionText) { block() }
         show()
     }
-    ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(30000L).array()
 }
 
 @ExperimentalUnsignedTypes

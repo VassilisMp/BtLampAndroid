@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.concurrent.Executors
@@ -74,7 +75,6 @@ class BtServerActivity : AppCompatActivity() {
     private inner class BluetoothServer {
 
         private val btThread = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-        private val inputThread = Executors.newSingleThreadExecutor()
 
         private val mmServerSocket: BluetoothServerSocket? by lazy(LazyThreadSafetyMode.NONE) {
             BluetoothAdapter.getDefaultAdapter()?.listenUsingRfcommWithServiceRecord(NAME, PORT_UUID)
@@ -97,7 +97,7 @@ class BtServerActivity : AppCompatActivity() {
                 }
                 socket?.also {
                     manageMyConnectedSocket(it)
-                    mmServerSocket?.close()
+//                    mmServerSocket?.close()
                     shouldLoop = false
                 }
             }
@@ -120,35 +120,29 @@ class BtServerActivity : AppCompatActivity() {
             sendButton.setOnClickListener {
                 showToast("sendButton onClick")
                 GlobalScope.launch(btThread) {
-                    outputStream.write(readWriteTextview.text.toString().toByteArray())
+                    outputStream.write((readWriteTextview.text.toString() + '\n').toByteArray())
                 }
             }
-            val receiveButton = findViewById<Button>(R.id.receive_button)
-            /*receiveButton.setOnClickListener {
-                val inputStream = connectedSocket?.inputStream!!
-                val readBytes = inputStream.readBytes()
-                readWriteTextview.text = readBytes.decodeToString()
-            }*/
 
-            inputThread.execute {
-                val mmBuffer = ByteArray(1024) // mmBuffer store for the stream
-                val inputStream = connectedSocket?.inputStream ?: return@execute
-                var numBytes: Int // bytes returned from read()
-
+            GlobalScope.launch(btThread) {
+                val inputStream = connectedSocket?.inputStream ?: return@launch
                 // Keep listening to the InputStream until an exception occurs.
                 while (true) {
                     // Read from the InputStream.
-                    val read = try {
-//                        inputStream.read(mmBuffer)
-                        inputStream.bufferedReader().readLine()
+                    try {
+                        if (inputStream.available() > 0) {
+                            val read = inputStream.bufferedReader().readLine()
+                            lifecycleScope.launch { readWriteTextview.text = read }
+                        } else delay(1)
                     } catch (e: IOException) {
                         Log.d(TAG, "Input stream was disconnected", e)
+                        showToastC("Input stream was disconnected")
+                        waitForConnections()
                         break
                     }
-//                    lifecycleScope.launch { readWriteTextview.text = mmBuffer.decodeToString(endIndex = numBytes) }
-                    lifecycleScope.launch { readWriteTextview.text = read }
                 }
             }
         }
 
-    } }
+    }
+}
