@@ -4,7 +4,7 @@
     android:layout_width="100dp"
     android:layout_height="match_parent"
     android:layout_margin="3dp"
-    android:background="#FFFFFF">
+    android:background="#000000">
 
     <androidx.cardview.widget.CardView
         android:id="@+id/color_cardview"
@@ -13,5 +13,5 @@
         android:layout_gravity="center"
         app:cardCornerRadius="50dp"
         app:cardElevation="3dp"
-        app:cardPreventCornerOverlap="true"/>
+        app:cardPreventCornerOverlap="true" />
 </FrameLayout>

@@ -3,10 +3,7 @@ package gr.cs.btlamp.ui
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
 import android.graphics.Color
 import android.os.Bundle
 import android.os.IBinder
@@ -19,11 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.larswerkman.holocolorpicker.ColorPicker
 import gr.cs.btlamp.*
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlin.properties.Delegates
+import kotlinx.coroutines.*
 
 
 private const val TAG = "MainActivity"
@@ -46,18 +39,6 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
     private val power: Boolean
         get() = switchButton.isChecked
 
-    private var btEnabled: Boolean by Delegates.observable(false) { prop, old, new ->
-        if (new && !mBound) {
-            // Bind to LocalService
-            GlobalScope.launch(Dispatchers.Default) {
-                Intent(this@MainActivity, MyBluetoothService::class.java).also { intent ->
-                    bindService(intent, connection, Context.BIND_AUTO_CREATE)
-                    startService(intent)
-                }
-            }
-        }
-    }
-
     private var colorSequence: IntArray? = null
 
     /** Defines callbacks for service binding, passed to bindService()  */
@@ -77,15 +58,16 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
                         }
                         println("Done!")
                     }
+                    mBound = true
                 }
 
                 override fun onDisconnected() {
                     channelListenJob?.cancel()
                     channelListenJob = null
+                    mBound = false
                 }
 
             })
-            mBound = true
         }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
@@ -95,9 +77,30 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
         }
     }
 
-    fun stopService() {
+    private fun bindService() {
+        /*Intent(this@MainActivity, MyBluetoothService::class.java).run {
+            startService(this)
+        }*/
+        // Bind to LocalService
+        Intent(this@MainActivity, MyBluetoothService::class.java).also { intent ->
+            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        btPermission()
+        bindService()
+    }
+
+    private fun stopService() {
         unbindService(connection)
         mBound = false
+    }
+
+    override fun onStop() {
+        super.onStop()
+        stopService()
     }
 
     @ExperimentalUnsignedTypes
@@ -167,13 +170,12 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
         random_color.setOnClickListener(this)
         pick_color_seq.setOnClickListener(this)
         switchButton.setOnClickListener(this)
-        schedule_but.setOnClickListener {
+        left_time_btn.setOnClickListener {
             // TODO("show activity for scheduling")
         }
-        music_btn.setOnClickListener {
+        schedule_btn.setOnClickListener {
             // TODO("show activity for music")
         }
-        btPermission()
     }
 
     private fun btPermission() {
@@ -185,7 +187,7 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
             bluetoothNotAvailable()
         } else {
             if (mBluetoothAdapter!!.isEnabled) {
-                btEnabled = true
+                bluetoothEnabled()
             } else {
                 bluetoothDisabled()
             }
@@ -212,16 +214,12 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
         if (power) mService?.btApi?.changeColor(red, green, blue, alpha)
     }
 
-    override fun onActivityResult(
-            requestCode: Int,
-            resultCode: Int,
-            data: Intent?
-    ) {
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         Log.d(TAG, this::onActivityResult.name)
         when (requestCode) {
             REQUEST_ENABLE_BT -> {
                 when (resultCode) {
-                    RESULT_OK -> btEnabled = true
+//                    RESULT_OK ->
                     RESULT_CANCELED -> finish()
                 }
             }
@@ -229,7 +227,8 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
                 Log.d(TAG, "REQUEST_COLOR_SEQUENCE")
                 colorSequence = data?.getIntArrayExtra(SEQUENCE)
                 colorSequence?.forEach {
-                    Log.d(TAG, "$it") }
+                    Log.d(TAG, "$it")
+                }
             }
         }
         super.onActivityResult(requestCode, resultCode, data)
@@ -274,8 +273,8 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
                 }
             }
             pick_color_seq -> startActivityForResult(
-                Intent(this, SequencePickerActivity::class.java),
-                REQUEST_COLOR_SEQUENCE
+                    Intent(this, SequencePickerActivity::class.java),
+                    REQUEST_COLOR_SEQUENCE
             )
             switchButton -> {
                 if (switchButton.isChecked)

@@ -11,7 +11,9 @@ import android.content.IntentFilter
 import android.os.Binder
 import android.os.IBinder
 import android.util.Log
+import android.view.View
 import androidx.annotation.Nullable
+import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -24,7 +26,7 @@ import java.util.concurrent.Executors
 
 private const val TAG = "MyBluetoothService"
 //private const val btDeviceName = "HUAWEI P8 lite"
-private const val btDeviceName = "HC05"
+private const val btDeviceName = "HC-06"
 const val STD_UUID = "00001101-0000-1000-8000-00805f9b34fb"
 private const val other_uuid = "0000110a-0000-1000-8000-00805f9b34fb"
 val PORT_UUID: UUID =
@@ -37,9 +39,21 @@ class MyBluetoothService : Service() {
 
     private val bluetoothAdapter: BluetoothAdapter? by lazy { BluetoothAdapter.getDefaultAdapter() }
     private var device: BluetoothDevice? = null
+    private var socket: BluetoothSocket? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
     val channel: Channel<String> by lazy { Channel() }
+    private var started = false
+    private var scope: CoroutineScope = CoroutineScope(btDispatcher)
+        get() {
+            if (!field.isActive) {
+                field = CoroutineScope(btDispatcher)
+            }
+            return field
+        }
+    private var bound = false
+    private var destroyTimer: Job? = null
+    var boundActivity: AppCompatActivity? = null
 
     // listener for interaction with ui, activity
     interface ConnectionListener {
@@ -59,19 +73,59 @@ class MyBluetoothService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // start Bluetooth service
-        BTconnect()
-        Log.i(TAG, "$TAG started")
+        /*destroyTimer?.cancel()
+        if (!started) {
+            // start Bluetooth service
+            BTconnect()
+            started = true
+        }*/
         return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         showToast("Service Destroyed")
+        Log.d(TAG, "onDestroy")
+        unregisterReceiver(mReceiver)
+        scope.cancel()
+        socket?.close()
     }
 
     @Nullable
-    override fun onBind(intent: Intent?): IBinder = mBinder
+    override fun onBind(intent: Intent?): IBinder {
+        Log.d(TAG, "OnBind")
+        destroyTimer?.cancel()
+        if (!started) {
+            // start Bluetooth service
+            BTconnect()
+            started = true
+        }
+        bound = true
+        return mBinder
+    }
+
+    override fun onRebind(intent: Intent?) {
+        destroyTimer?.cancel()
+        showToast("onRebind")
+        super.onRebind(intent)
+    }
+
+
+
+    override fun onUnbind(intent: Intent?): Boolean {
+//        return super.onUnbind(intent)
+        bound = false
+        (mBinder as MyBluetoothService.LocalBinder).view = null
+        /*destroyTimer = scope.launch(Dispatchers.Main) {
+            delay(2000)
+            if (!bound) {
+                SnackbarWrapper.make(applicationContext, "Destroyed service", Snackbar.LENGTH_LONG).show()
+                stopSelf()
+                onDestroy()
+            }
+        }*/
+        return true
+    }
 
     private val mBinder: IBinder = LocalBinder()
 
@@ -79,33 +133,44 @@ class MyBluetoothService : Service() {
         // Return this instance of LocalService so clients can call public methods
         val service: MyBluetoothService
             get() = this@MyBluetoothService
+        var view: View? = null
     }
 
     // bluetooth connection function
     @Suppress("BlockingMethodInNonBlockingContext")
-    fun BTconnect(): Job = GlobalScope.launch(btDispatcher) {
+    fun BTconnect(): Job = scope.launch(btDispatcher) {
         /*val fetchUuidsWithSdp = device?.fetchUuidsWithSdp()
         Log.d(TAG, fetchUuidsWithSdp.toString())
         device?.uuids?.forEach {
             Log.d(TAG, it.uuid.toString())
         }*/
+        showToastC("Hi")
+        val binder = mBinder as MyBluetoothService.LocalBinder
+        if (bluetoothAdapter?.state != BluetoothAdapter.STATE_ON) {
+            mBinder.view?.snackBarMake(
+                    "Bluetooth is off, turn on and retry.",
+                    actionText = "Retry",
+                    block = { BTconnect() }
+            )?: showToast("Bluetooth is off, turn on and retry.")
+            return@launch
+        }
         device = bluetoothAdapter?.bondedDevices?.firstOrNull { it.name == btDeviceName }?.apply {
             bluetoothAdapter?.cancelDiscovery()
             showToastC("Paired with $btDeviceName")
-        } ?: snackBarMakeC(
-                    "Not paired with device",
+        } ?: mBinder.view?.snackBarMake(
+                    "Not paired with device, pair with $btDeviceName first and retry.",
                     actionText = "Retry",
                     block = { BTconnect() }
             ).run { return@launch }
         try {
-            val socket = device?.createRfcommSocketToServiceRecord(PORT_UUID)
+            socket = device?.createRfcommSocketToServiceRecord(PORT_UUID)
             socket?.connect() ?: throw IOException("Couldn't connect")
-            inputStream = socket.inputStream
-            outputStream = socket.outputStream
+            inputStream = socket!!.inputStream
+            outputStream = socket!!.outputStream
         } catch (e: IOException) {
             e.printStackTrace()
             // show reconnect snackbar
-            snackBarMakeC(
+            mBinder.view?.snackBarMake(
                 "Could not connect to host",
                 actionText = "Retry",
                 block = { BTconnect() }
@@ -113,12 +178,12 @@ class MyBluetoothService : Service() {
             return@launch
         }
         launch(Dispatchers.Main) {
-            SnackbarWrapper.make(applicationContext, "Connected", Snackbar.LENGTH_LONG).show()
+            mBinder.view?.let { Snackbar.make(it, "Connected", Snackbar.LENGTH_LONG).show() }
             initReceiver()
             connectionListener?.onConnected()
         }
         // launch loop in the same thread
-        launch(btDispatcher) {
+        scope.launch(btDispatcher) {
             while (true) {
                 try {
                     if (inputStream!!.available() > 0) {
@@ -135,7 +200,7 @@ class MyBluetoothService : Service() {
 
     /* Call this from the main activity to send data to the remote device */
     @Suppress("BlockingMethodInNonBlockingContext")
-    fun write(bytes: ByteArray) = GlobalScope.launch(btDispatcher) {
+    fun write(bytes: ByteArray) = scope.launch(btDispatcher) {
         try {
             outputStream?.write(bytes + '\n'.toByte()) ?: throw IOException("not Connected")
         } catch (e: IOException) {
@@ -150,25 +215,43 @@ class MyBluetoothService : Service() {
     fun write(input: String) = write(input.toByteArray())
 
     private fun initReceiver() {
-        val filter = IntentFilter()
-        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+        }
         this@MyBluetoothService.registerReceiver(mReceiver, filter)
     }
 
     /*This method is used to check if bluetooth is disconnected. If disconnected try to reconnect automatically*/
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-            val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-            if (BluetoothDevice.ACTION_ACL_DISCONNECTED == action) {
-                GlobalScope.launch(Dispatchers.Main) {
-                    connectionListener?.onDisconnected()
-                    snackBarMakeC(
-                            "Lost bluetooth connection with ${device?.name}",
-                            actionText = "Retry",
-                            block = { BTconnect() }
-                    )
+            when(intent.action) {
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                    val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                    GlobalScope.launch(Dispatchers.Main) {
+                        connectionListener?.onDisconnected()
+                        val binder = mBinder as MyBluetoothService.LocalBinder
+                        mBinder.view?.snackBarMake(
+                                "Lost bluetooth connection with ${device?.name}",
+                                actionText = "Retry",
+                                block = { BTconnect() }
+                        )
+                    }
+                }
+                BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                    when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
+                            BluetoothAdapter.ERROR)) {
+                        BluetoothAdapter.STATE_OFF -> {
+                            showToast("Bluetooth off")
+                            scope.cancel()
+                            socket?.close()
+                            BTconnect()
+                        }
+                        BluetoothAdapter.STATE_TURNING_OFF -> showToast("Turning Bluetooth off...")
+                        BluetoothAdapter.STATE_ON -> showToast("Bluetooth on")
+                        BluetoothAdapter.STATE_TURNING_ON -> showToast("Turning Bluetooth on...")
+                    }
                 }
             }
         }
@@ -180,9 +263,12 @@ class MyBluetoothService : Service() {
     inner class BtApi {
         fun changeColor(red: Byte, green: Byte, blue: Byte, alpha: Byte) =
                 write(CHANGE_COLOR, red, green, blue, alpha)
+        fun changeColor(color: Int) =
+                write(CHANGE_COLOR, *color.toByteArray())
         @ExperimentalUnsignedTypes
         // UInt size is 32-bit, In C lang unsigned long is 32-bit
         fun changePowerInterval(interval: UInt) = write(CHANGE_POWER_INTERVAL, *interval.toByteArray())
+        fun changePowerInterval(interval: Int) = write(CHANGE_POWER_INTERVAL, *interval.toByteArray())
         fun enableRandomColorContinuous() = write(ENABLE_RANDOM_COLOR, 0.toByte())
         fun enableRandomColor() = write(ENABLE_RANDOM_COLOR, 1.toByte())
         fun enableRandomColor2() = write(ENABLE_RANDOM_COLOR, 2.toByte())

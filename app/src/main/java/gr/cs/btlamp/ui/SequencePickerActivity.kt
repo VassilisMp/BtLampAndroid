@@ -1,12 +1,21 @@
 package gr.cs.btlamp.ui
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.larswerkman.holocolorpicker.ColorPicker
+import gr.cs.btlamp.MyBluetoothService
 import gr.cs.btlamp.R
+import gr.cs.btlamp.showToastC
 import kotlinx.android.synthetic.main.activity_sequence_picker.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 
 private const val TAG = "SequencePickerActivity"
@@ -20,6 +29,11 @@ class SequencePickerActivity : AppCompatActivity() {
 
     private var currentColor: Int = 0
     private lateinit var colorsAdapter: ColorsAdapter
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {}
+        override fun onServiceDisconnected(arg0: ComponentName) {}
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +70,15 @@ class SequencePickerActivity : AppCompatActivity() {
 //            colorArrayAdapter.notifyDataSetChanged()
         }
         back_button.setOnClickListener { returnResult() }
+        // Bind to LocalService
+        Intent(this, MyBluetoothService::class.java).also { intent ->
+            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        }
+    }
+
+    override fun onDestroy() {
+        unbindService(connection)
+        super.onDestroy()
     }
 
     private fun returnResult() {

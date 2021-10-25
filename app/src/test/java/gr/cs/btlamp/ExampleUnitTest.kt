@@ -120,4 +120,54 @@ class ExampleUnitTest {
         }
         exitProcess(0)
     }
+
+    private val btDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private var scope: CoroutineScope = CoroutineScope(btDispatcher)
+        get() {
+            if (!field.isActive) {
+                field = CoroutineScope(btDispatcher)
+            }
+            return field
+        }
+
+    @Test
+    fun cor_scope() {
+        val jobList = mutableListOf<Job>()
+        if (scope.isActive)
+            println("scope is active")
+        jobList += scope.launch {
+            println("launched 1, waiting...")
+            delay(1000)
+            println("1 after wait.")
+        }
+        jobList += scope.launch {
+            println("launched 2, waiting...")
+            delay(3000)
+            println("2 after wait.")
+        }
+        jobList += GlobalScope.launch {
+            delay(1100)
+            scope.cancel()
+            println("cancel scope")
+            println(scope.isActive)
+            scope.launch(btDispatcher) { println("after canceled scope") }
+            println(scope.isActive)
+        }
+        jobList += GlobalScope.launch(btDispatcher) {
+            println("GlobalScope")
+            println("launched 3, waiting...")
+            delay(3000)
+            println("3 after wait.")
+        }
+        runBlocking {
+            jobList.joinAll()
+        }
+    }
+
+    @Test
+    fun testIntTobytearray() {
+        val int: Int = 1
+        val bytes = int.toByteArray()
+        println(bytes.size)
+    }
 }

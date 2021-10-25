@@ -32,6 +32,7 @@ private const val NAME = "ArduinoLamp"
 class BtServerActivity : AppCompatActivity() {
 
     val readWriteTextview: TextView by lazy{ findViewById(R.id.r_t_test) }
+    val bytesSizeTextview: TextView by lazy{ findViewById(R.id.bytes_size_text) }
     private val pairedDeviceListView: ListView by lazy{ findViewById(R.id.paired_devices) }
     val sendButton: Button by lazy { findViewById(R.id.send_button) }
 
@@ -131,8 +132,22 @@ class BtServerActivity : AppCompatActivity() {
                     // Read from the InputStream.
                     try {
                         if (inputStream.available() > 0) {
-                            val read = inputStream.bufferedReader().readLine()
-                            lifecycleScope.launch { readWriteTextview.text = read }
+                            /*val read = inputStream.bufferedReader().readLine()
+                            lifecycleScope.launch {
+                                readWriteTextview.text = read
+                                bytesSizeTextview.text = read.length.toString()
+                            }*/
+                            val charArray = arrayListOf<Char>().apply {
+                                while (inputStream.available() > 0) {
+                                    val byte = inputStream.read().toChar()
+                                    if (byte == '\n') break
+                                    add(byte)
+                                }
+                            }.toCharArray()
+                            lifecycleScope.launch {
+                                readWriteTextview.text = charArray.joinToString()
+                                bytesSizeTextview.text = charArray.size.toString()
+                            }
                         } else delay(1)
                     } catch (e: IOException) {
                         Log.d(TAG, "Input stream was disconnected", e)

@@ -1,6 +1,7 @@
 package gr.cs.btlamp
 
 import android.content.Context
+import android.view.View
 import android.widget.Toast
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
@@ -28,6 +29,24 @@ suspend inline fun Context.snackBarMakeC(
 ) = withContext(Dispatchers.Main) {
     SnackbarWrapper.make(
         this@snackBarMakeC,
+        text,
+        duration
+    ).apply {
+        if (actionText != null)
+            setAction(actionText) { block() }
+        show()
+    }
+}
+
+// show Snackbar on this View
+suspend inline fun View.snackBarMake(
+    text: CharSequence,
+    @BaseTransientBottomBar.Duration duration: Int = Snackbar.LENGTH_INDEFINITE,
+    actionText: String? = null,
+    crossinline block: () -> Unit
+) = withContext(Dispatchers.Main) {
+    Snackbar.make(
+        this@snackBarMake,
         text,
         duration
     ).apply {
@@ -83,3 +102,8 @@ fun UInt.toByteArray(): ByteArray {
         .putInt(this.toInt())
         .array()
 }
+
+fun Int.toByteArray(): ByteArray = ByteBuffer.allocate(Int.SIZE_BYTES)
+    .order(ByteOrder.BIG_ENDIAN)  // BIG_ENDIAN is default byte order, so it is not necessary.
+    .putInt(this)
+    .array()
