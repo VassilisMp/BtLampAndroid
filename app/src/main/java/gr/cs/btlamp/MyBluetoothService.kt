@@ -283,6 +283,7 @@ class MyBluetoothService : Service() {
         fun enableTangent() = write(ENABLE_TANGENT)
         fun enableSquare() = write(ENABLE_SQUARE)
         fun enableTriangle() = write(ENABLE_TRIANGLE)
+        fun enableTimer(hours: Byte, mins: Byte) = write(ENABLE_TIMER, hours, mins)
     }
 }
 
@@ -301,6 +302,7 @@ private const val ENABLE_COSINE = '2'.toByte()
 private const val ENABLE_TANGENT = '3'.toByte()
 private const val ENABLE_SQUARE = '4'.toByte()
 private const val ENABLE_TRIANGLE = '5'.toByte()
+private const val ENABLE_TIMER = 'T'.toByte()
 
 const val SINE = "Sine"
 const val COSINE = "Cosine"

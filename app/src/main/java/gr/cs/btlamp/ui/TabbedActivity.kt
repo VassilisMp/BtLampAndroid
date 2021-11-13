@@ -1,5 +1,6 @@
 package gr.cs.btlamp.ui
 
+import android.app.TimePickerDialog
 import android.bluetooth.BluetoothAdapter
 import android.content.ComponentName
 import android.content.Intent
@@ -101,7 +102,31 @@ class TabbedActivity : AppCompatActivity() {
                 mService?.btApi?.disableLight()
         }
         left_time_btn.setOnClickListener {
-            // TODO("show activity for leftTime")
+            // listener which is triggered when the
+            // time is picked from the time picker dialog
+            val timePickerDialogListener: TimePickerDialog.OnTimeSetListener =
+                TimePickerDialog.OnTimeSetListener { _, hourOfDay, minute ->
+                    // logic to properly handle
+                    // the picked timings by user
+                    mService?.btApi?.enableTimer(hourOfDay.toByte(), minute.toByte())
+                }
+            val timePicker = TimePickerDialog(
+                // pass the Context
+                this,
+                // listener to perform task
+                // when time is picked
+                timePickerDialogListener,
+                // default hour when the time picker dialog is opened
+                0,
+                // default minute when the time picker dialog is opened
+                0,
+                // 24 hours time picker is true
+                true
+            )
+
+            // then after building the timepicker
+            // dialog show the dialog to user
+            timePicker.show()
         }
         schedule_btn.setOnClickListener {
             // TODO("show activity for Schedule")
