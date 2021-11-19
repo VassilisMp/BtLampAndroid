@@ -23,6 +23,7 @@ private const val TAG = "MainActivity"
 private const val REQUEST_ENABLE_BT: Int = 1
 internal const val REQUEST_COLOR_SEQUENCE: Int = 2
 internal const val SEQUENCE: String = "sequence"
+@Deprecated("")
 class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, View.OnClickListener {
 
     private lateinit var nestedLinLt: LinearLayout

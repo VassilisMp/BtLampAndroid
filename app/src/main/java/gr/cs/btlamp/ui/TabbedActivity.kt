@@ -9,14 +9,12 @@ import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import android.view.View
+import android.widget.TimePicker
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
-import gr.cs.btlamp.MyBluetoothService
-import gr.cs.btlamp.R
-import gr.cs.btlamp.showToast
-import gr.cs.btlamp.showToastC
+import gr.cs.btlamp.*
 import gr.cs.btlamp.ui.tabbed.SectionsPagerAdapter
 import kotlinx.android.synthetic.main.activity_tabbed.*
 import kotlinx.coroutines.Dispatchers
@@ -104,13 +102,13 @@ class TabbedActivity : AppCompatActivity() {
         left_time_btn.setOnClickListener {
             // listener which is triggered when the
             // time is picked from the time picker dialog
-            val timePickerDialogListener: TimePickerDialog.OnTimeSetListener =
-                TimePickerDialog.OnTimeSetListener { _, hourOfDay, minute ->
-                    // logic to properly handle
-                    // the picked timings by user
-                    mService?.btApi?.enableTimer(hourOfDay.toByte(), minute.toByte())
+            val timePickerDialogListener: TimePickerDialogCustom.OnTimeSetListener =
+                object : TimePickerDialogCustom.OnTimeSetListener {
+                    override fun onTimeSet(view: TimePicker?, hourOfDay: Int, minute: Int) {
+                        mService?.btApi?.enableTimer(hourOfDay.toByte(), minute.toByte())
+                    }
                 }
-            val timePicker = TimePickerDialog(
+            val timePicker = TimePickerDialogCustom(
                 // pass the Context
                 this,
                 // listener to perform task
@@ -123,7 +121,6 @@ class TabbedActivity : AppCompatActivity() {
                 // 24 hours time picker is true
                 true
             )
-
             // then after building the timepicker
             // dialog show the dialog to user
             timePicker.show()
