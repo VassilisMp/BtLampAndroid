@@ -131,6 +131,25 @@ class ExampleUnitTest {
         }
 
     @Test
+    fun test_cor() {
+        val launch = scope.launch {
+            println("sdcscs")
+            cancel("cancel test", Exception())
+        }
+        val dispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+        GlobalScope.launch(dispatcher) {
+            delay(1000)
+            println("hahah" + launch.isCancelled)
+        }
+        Thread.currentThread().run {
+            Thread.sleep(2000)
+            scope.launch {
+                println("after cancel")
+            }
+        }
+    }
+
+    @Test
     fun cor_scope() {
         val jobList = mutableListOf<Job>()
         if (scope.isActive)

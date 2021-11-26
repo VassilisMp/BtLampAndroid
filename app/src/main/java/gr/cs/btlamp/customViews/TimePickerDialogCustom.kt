@@ -1,13 +1,15 @@
-package gr.cs.btlamp
+package gr.cs.btlamp.customViews
 
 import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TimePicker
 import android.widget.TimePicker.OnTimeChangedListener
+import gr.cs.btlamp.R
 
 /*
 * Copyright (C) 2007 The Android Open Source Project
@@ -34,7 +36,7 @@ import android.widget.TimePicker.OnTimeChangedListener
  * See the [Pickers]({@docRoot}guide/topics/ui/controls/pickers.html)
  * guide.
  */
-class TimePickerDialogCustom(
+open class TimePickerDialogCustom(
     context: Context,
     private val mTimeSetListener: OnTimeSetListener?,
     private val mInitialHourOfDay: Int,
@@ -69,31 +71,21 @@ class TimePickerDialogCustom(
         /* do nothing */
     }
 
-    override fun show() {
-        super.show()
-        getButton(BUTTON_POSITIVE).setOnClickListener {
-            if (timePicker.validateInput()) {
-                onClick(
-                    this@TimePickerDialogCustom,
-                    BUTTON_POSITIVE
-                )
-                // Clearing focus forces the dialog to commit any pending
-                // changes, e.g. typed text in a NumberPicker.
-                timePicker.clearFocus()
-                dismiss()
-            }
-        }
-    }
-
     override fun onClick(dialog: DialogInterface, which: Int) {
         when (which) {
-            BUTTON_POSITIVE ->                 // Note this skips input validation and just uses the last valid time and hour
+            BUTTON_POSITIVE -> {
+                // Note this skips input validation and just uses the last valid time and hour
                 // entry. This will only be invoked programmatically. User clicks on BUTTON_POSITIVE
                 // are handled in show().
                 mTimeSetListener?.onTimeSet(
                     timePicker, timePicker.currentHour,
                     timePicker.currentMinute
                 )
+                // Clearing focus forces the dialog to commit any pending
+                // changes, e.g. typed text in a NumberPicker.
+                timePicker.clearFocus()
+                dismiss()
+            }
             BUTTON_NEGATIVE -> cancel()
         }
     }

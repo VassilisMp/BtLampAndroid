@@ -1,14 +1,38 @@
 package gr.cs.btlamp
 
+import android.animation.ArgbEvaluator
 import android.content.Context
+import android.graphics.BlendMode
+import android.graphics.BlendModeColorFilter
+import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.view.View
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import android.graphics.drawable.TransitionDrawable
+import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
+import android.animation.ValueAnimator
+
+import android.animation.ValueAnimator.AnimatorUpdateListener
+
+import android.R
+import android.graphics.drawable.GradientDrawable
+
+
+
+
+
+
+
 
 fun Int.toHexString() = Integer.toHexString(this)
 
@@ -107,3 +131,50 @@ fun Int.toByteArray(): ByteArray = ByteBuffer.allocate(Int.SIZE_BYTES)
     .order(ByteOrder.BIG_ENDIAN)  // BIG_ENDIAN is default byte order, so it is not necessary.
     .putInt(this)
     .array()
+
+fun timeToMillis(hours: Number = 0, minutes: Number = 0) =
+    hours.toLong() * 3600000 + minutes.toLong() * 60000
+
+fun timeToMillis(time: Pair<Int, Int>) = timeToMillis(time.first, time.second)
+
+/**
+ * @returns a pair with hours as first and minutes as second
+ */
+fun millisToTime(millis: Long): Pair<Int, Int> =
+    (millis/1000/60/60).toInt() to ((millis/1000/60)%60).toInt()
+
+/**
+ * Disables and darkens view with animation.
+ */
+fun View.disable() {
+    ValueAnimator.ofObject(
+        ArgbEvaluator(),
+        0x00000000,
+        0x80000000.toInt()
+    ).run {
+        addUpdateListener { animator ->
+            (foreground as ColorDrawable).color = (animator.animatedValue as Int)
+        }
+        duration = 250
+        start()
+    }
+    isEnabled = false
+}
+
+/**
+ * Enables and undoes darken view with animation.
+ */
+fun View.enable() {
+    ValueAnimator.ofObject(
+        ArgbEvaluator(),
+        0x80000000.toInt(),
+        0x00000000
+    ).run {
+        addUpdateListener { animator ->
+            (foreground as ColorDrawable).color = (animator.animatedValue as Int)
+        }
+        duration = 250
+        start()
+    }
+    isEnabled = true
+}

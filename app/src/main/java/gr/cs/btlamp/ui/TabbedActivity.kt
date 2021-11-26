@@ -1,26 +1,32 @@
 package gr.cs.btlamp.ui
 
-import android.app.TimePickerDialog
 import android.bluetooth.BluetoothAdapter
 import android.content.ComponentName
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.IBinder
 import android.util.Log
 import android.view.View
+import android.widget.Switch
 import android.widget.TimePicker
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import gr.cs.btlamp.*
+import gr.cs.btlamp.customViews.TimePickerDialogCustom
 import gr.cs.btlamp.ui.tabbed.SectionsPagerAdapter
 import kotlinx.android.synthetic.main.activity_tabbed.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.util.*
+import kotlin.properties.Delegates
 
 private const val TAG = "TabbedActivity"
 private const val REQUEST_ENABLE_BT: Int = 1
@@ -71,6 +77,17 @@ class TabbedActivity : AppCompatActivity() {
         }
     }
 
+    private var timerSwitch: Switch? = null
+    private var timer: CountDownTimer? = null
+    private var timeRemaining: Pair<Int, Int>? by Delegates.observable(null) { _, _, newValue ->
+        if (newValue != null && timePicker.isShowing)
+            timePicker.updateTime(newValue.first, newValue.second)
+    }
+
+    // listener which is triggered when the
+    // time is picked from the time picker dialog
+    private lateinit var timePicker: TimePickerDialogCustom
+
     override fun onStart() {
         super.onStart()
         Intent(this, MyBluetoothService::class.java).also { intent ->
@@ -99,31 +116,63 @@ class TabbedActivity : AppCompatActivity() {
             else
                 mService?.btApi?.disableLight()
         }
-        left_time_btn.setOnClickListener {
-            // listener which is triggered when the
-            // time is picked from the time picker dialog
-            val timePickerDialogListener: TimePickerDialogCustom.OnTimeSetListener =
-                object : TimePickerDialogCustom.OnTimeSetListener {
-                    override fun onTimeSet(view: TimePicker?, hourOfDay: Int, minute: Int) {
-                        mService?.btApi?.enableTimer(hourOfDay.toByte(), minute.toByte())
-                    }
+        timePicker = object : TimePickerDialogCustom(
+            this@TabbedActivity,
+            // listener to perform task
+            // when time is picked
+            object : OnTimeSetListener {
+                override fun onTimeSet(view: TimePicker?, hourOfDay: Int, minute: Int) {
+                    timeRemaining = hourOfDay to minute
                 }
-            val timePicker = TimePickerDialogCustom(
-                // pass the Context
-                this,
-                // listener to perform task
-                // when time is picked
-                timePickerDialogListener,
-                // default hour when the time picker dialog is opened
-                0,
-                // default minute when the time picker dialog is opened
-                0,
-                // 24 hours time picker is true
-                true
-            )
-            // then after building the timepicker
+            },
+            // default hour when the time picker dialog is opened
+            0,
+            // default minute when the time picker dialog is opened
+            0,
+            // 24 hours time picker is true
+            true
+        ) {
+            override fun onClick(dialog: DialogInterface, which: Int) {
+                super.onClick(dialog, which)
+                if (which == BUTTON_POSITIVE && timerSwitch!!.isChecked) {
+                    mService?.btApi?.enableTimer(timeRemaining!!.first.toByte(), timeRemaining!!.second.toByte())?.invokeOnCompletion {
+                            if (it == null) {
+                                timer = object : CountDownTimer(timeToMillis(timeRemaining!!.first, timeRemaining!!.second), 60000) {
+                                    override fun onTick(millisUntilFinished: Long) { timeRemaining = millisToTime(millisUntilFinished) }
+                                    override fun onFinish() { timerSwitch?.isChecked = false }
+                                }.start()
+                            }
+                    }
+                } else if (which == BUTTON_NEGATIVE && timerSwitch!!.isChecked) {
+                    if (timer == null) timerSwitch!!.toggle()
+                }
+            }
+        }
+        left_time_btn.setOnClickListener {
             // dialog show the dialog to user
             timePicker.show()
+            timerSwitch = timePicker.findViewById(R.id.timer_switch)
+            if (timer == null && timerSwitch!!.isChecked) timerSwitch!!.isChecked = false
+            val timePickerView = timePicker.findViewById<TimePicker>(R.id.timePicker)
+            // initialize as disabled, it's needed only on the first dialog open
+            if (!timerSwitch!!.isChecked) timePickerView.isEnabled = false
+            // set timerSwitch listener if it hasn't been set yet
+            if(!timerSwitch!!.hasOnClickListeners()) {
+                timerSwitch!!.setOnCheckedChangeListener { _, isChecked ->
+                    when(isChecked) {
+                        true -> timePickerView.enable()
+                        false -> {
+                            if (timer != null) {
+                                timer!!.cancel()
+                                timer = null
+                                mService?.btApi?.disableTimer()
+                            }
+                            timePickerView.disable()
+                            timePicker.updateTime(0, 0)
+                        }
+                    }
+                }
+            }
         }
         schedule_btn.setOnClickListener {
             // TODO("show activity for Schedule")

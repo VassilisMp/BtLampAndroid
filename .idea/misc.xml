@@ -3,7 +3,10 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="../../../layout/custom_preview.xml" value="0.22864583333333333" />
         <entry key="app/src/debug/res/layout/activity_bt_server.xml" value="0.3125" />
+        <entry key="app/src/main/res/drawable/black.xml" value="0.2296875" />
+        <entry key="app/src/main/res/drawable/disable_transition.xml" value="0.2296875" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.1921875" />
         <entry key="app/src/main/res/layout/activity_tabbed.xml" value="0.1921875" />
         <entry key="app/src/main/res/layout/fragment_tabbed.xml" value="0.17" />

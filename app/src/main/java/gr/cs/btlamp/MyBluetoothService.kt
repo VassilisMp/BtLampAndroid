@@ -206,6 +206,7 @@ class MyBluetoothService : Service() {
         } catch (e: IOException) {
             Log.e("Send Error", "Unable to send message", e)
             showToastC("Unable to send message")
+            cancel("send error", e)
         }
     }
 
@@ -284,6 +285,7 @@ class MyBluetoothService : Service() {
         fun enableSquare() = write(ENABLE_SQUARE)
         fun enableTriangle() = write(ENABLE_TRIANGLE)
         fun enableTimer(hours: Byte, mins: Byte) = write(ENABLE_TIMER, hours, mins)
+        fun disableTimer() = write(DISABLE_TIMER)
     }
 }
 
@@ -303,6 +305,7 @@ private const val ENABLE_TANGENT = '3'.toByte()
 private const val ENABLE_SQUARE = '4'.toByte()
 private const val ENABLE_TRIANGLE = '5'.toByte()
 private const val ENABLE_TIMER = 'T'.toByte()
+private const val DISABLE_TIMER = 't'.toByte()
 
 const val SINE = "Sine"
 const val COSINE = "Cosine"
