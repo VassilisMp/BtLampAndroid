@@ -20,6 +20,26 @@ class AddScheduleActivity : AppCompatActivity() {
 
     private val resultIntent = Intent()
 
+    private val checkedItem = intArrayOf(0)
+    private val switchDialog by lazy {
+        AlertDialog.Builder(this)
+            .setTitle("switch type choice")
+            .setSingleChoiceItems(arrayOf(ON, OFF), checkedItem[0]) { _, which ->
+                // update the selected item which is selected by the user
+                // so that it should be selected when user opens the dialog next time
+                // and pass the instance to setSingleChoiceItems method
+                checkedItem[0] = which
+            }
+            .setPositiveButton("Confirm") { _, which ->
+//                checkedItem[0] = which
+                if (checkedItem[0] == 0) textView5.text = ON
+                else textView5.text = OFF
+            }.setCancelable(false)
+            .create()
+    }
+
+    private var repeatDays: Array<DayOfWeek> = emptyArray()
+
     @RequiresApi(Build.VERSION_CODES.O)
     private val getRepeatDays = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -35,6 +55,7 @@ class AddScheduleActivity : AppCompatActivity() {
                         }
                         resultIntent.putExtra(daysResult, this)
                     }
+                    repeatDays = it
                 }
             }
         }
@@ -46,6 +67,8 @@ class AddScheduleActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_schedule)
+        textView5.text = ON
+        repeat_days_text.text = "once"
         timePickerS.run {
             Calendar.getInstance().run {
                 hour = get(Calendar.HOUR_OF_DAY)
@@ -55,22 +78,19 @@ class AddScheduleActivity : AppCompatActivity() {
         repeat_view.setOnClickListener {
             // Use the Kotlin extension in activity-ktx
             // passing it the Intent you want to start
-            getRepeatDays.launch(Intent(this, RepeatActivity::class.java))
+            with(Intent(this, RepeatActivity::class.java)) {
+                putExtra(daysResult, repeatDays)
+                getRepeatDays.launch(this)
+            }
         }
         switch_view.setOnClickListener {
-            val checkedItem = if (textView5.text == ON) 0 else 1
-            AlertDialog.Builder(this)
-                .setTitle("switch type choice")
-                .setSingleChoiceItems(arrayOf(ON, OFF), checkedItem, null)
-                .setPositiveButton("Confirm") { _, which ->
-                    if (which == 0) textView5.text = ON
-                    else textView5.text = OFF
-                }.setCancelable(false)
+            switchDialog.show()
         }
         button2.setOnClickListener {
             resultIntent.run{
                 putExtra(time, timePickerS.hour to timePickerS.minute)
-                putExtra(switchVal, textView5.text == ON)
+                putExtra(switchVal, checkedItem)
+                putExtra(repeatDaysStr, repeatDays)
             }
             setResult(Activity.RESULT_OK, resultIntent)
             finish()
@@ -81,7 +101,7 @@ class AddScheduleActivity : AppCompatActivity() {
         const val ON = "ON"
         const val OFF = "OFF"
         const val time = "time"
-        const val repeatDays = "repeatDays"
+        const val repeatDaysStr = "repeatDays"
         const val switchVal = "switch"
     }
 }
