@@ -5,7 +5,6 @@ import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.IBinder
@@ -19,6 +18,7 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import gr.cs.btlamp.*
 import gr.cs.btlamp.customViews.TimePickerDialogCustom
+import gr.cs.btlamp.ui.schedule.ScheduleActivity
 import gr.cs.btlamp.ui.tabbed.SectionsPagerAdapter
 import kotlinx.android.synthetic.main.activity_tabbed.*
 import kotlinx.coroutines.Dispatchers
@@ -175,7 +175,7 @@ class TabbedActivity : AppCompatActivity() {
             }
         }
         schedule_btn.setOnClickListener {
-            // TODO("show activity for Schedule")
+            startActivity(Intent(this, ScheduleActivity::class.java))
         }
     }
 

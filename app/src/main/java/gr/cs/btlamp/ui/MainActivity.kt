@@ -23,6 +23,7 @@ private const val TAG = "MainActivity"
 private const val REQUEST_ENABLE_BT: Int = 1
 internal const val REQUEST_COLOR_SEQUENCE: Int = 2
 internal const val SEQUENCE: String = "sequence"
+@ExperimentalUnsignedTypes
 @Deprecated("")
 class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, View.OnClickListener {
 
@@ -104,7 +105,6 @@ class MainActivity : AppCompatActivity(), ColorPicker.OnColorChangedListener, Vi
         stopService()
     }
 
-    @ExperimentalUnsignedTypes
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)

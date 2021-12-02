@@ -18,6 +18,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BtLamp">
         <activity
+            android:name=".ui.schedule.RepeatActivity"
+            android:exported="true" />
+        <activity
+            android:name=".ui.schedule.AddScheduleActivity"
+            android:exported="true" />
+        <activity
+            android:name=".ui.schedule.ScheduleActivity"
+            android:exported="true" />
+        <activity
             android:name=".ui.TabbedActivity"
             android:label="@string/title_activity_tabbed"
             android:theme="@style/Theme.BtLamp.NoActionBar">
@@ -29,11 +38,14 @@
         </activity>
         <activity android:name=".ui.SequencePickerActivity" /> <!-- <activity android:name=".colorList.ColorsListActivity" /> -->
         <activity android:name=".ui.MainActivity">
-            <!--<intent-filter>
+
+            <!--
+            <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>-->
+            </intent-filter>
+            -->
         </activity>
 
         <service android:name=".MyBluetoothService" />

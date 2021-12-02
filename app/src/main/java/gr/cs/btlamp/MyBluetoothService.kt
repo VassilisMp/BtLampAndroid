@@ -86,7 +86,9 @@ class MyBluetoothService : Service() {
         super.onDestroy()
         showToast("Service Destroyed")
         Log.d(TAG, "onDestroy")
-        unregisterReceiver(mReceiver)
+        // TODO was using unregisterReceiver on TabbedActivity, but crashes after inserting
+        //  schedule classes
+//        unregisterReceiver(mReceiver)
         scope.cancel()
         socket?.close()
     }

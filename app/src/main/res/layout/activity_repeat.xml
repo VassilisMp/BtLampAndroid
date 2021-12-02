@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.schedule.RepeatActivity"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+<CheckBox
+    android:id="@+id/checkBox_sunday"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:button="@null"
+    android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+    android:text="Sunday" />
+
+<CheckBox
+    android:id="@+id/checkBox_monday"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:button="@null"
+    android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+    android:text="Monday" />
+
+<CheckBox
+    android:id="@+id/checkBox_tuesday"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:button="@null"
+    android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+    android:text="Tuesday" />
+
+<CheckBox
+    android:id="@+id/checkBox_wednesday"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:button="@null"
+    android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+    android:text="Wednesday" />
+
+<CheckBox
+    android:id="@+id/checkBox_thursday"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:button="@null"
+    android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+    android:text="Thursday" />
+
+<CheckBox
+    android:id="@+id/checkBox_friday"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:button="@null"
+    android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+    android:text="Friday" />
+
+<CheckBox
+    android:id="@+id/checkBox_saturday"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:button="@null"
+    android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+    android:text="Saturday" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+
+    <Button
+        android:id="@+id/save_days_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Save" />
+</LinearLayout>
