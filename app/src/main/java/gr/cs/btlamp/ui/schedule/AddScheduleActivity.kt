@@ -89,7 +89,7 @@ class AddScheduleActivity : AppCompatActivity() {
         button2.setOnClickListener {
             resultIntent.run{
                 putExtra(time, timePickerS.hour to timePickerS.minute)
-                putExtra(switchVal, checkedItem)
+                putExtra(switchVal, checkedItem[0])
                 putExtra(repeatDaysStr, repeatDays)
             }
             setResult(Activity.RESULT_OK, resultIntent)

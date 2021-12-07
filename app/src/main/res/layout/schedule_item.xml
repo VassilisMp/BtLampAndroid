@@ -7,7 +7,7 @@
     android:padding="8dp">
 
     <TextView
-        android:id="@+id/textView6"
+        android:id="@+id/sch_item_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/black"
@@ -17,23 +17,23 @@
         tools:text="18:00" />
 
     <TextView
-        android:id="@+id/textView8"
+        android:id="@+id/sch_item_repeat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView6"
+        app:layout_constraintTop_toBottomOf="@+id/sch_item_time"
         tools:text="Once" />
 
     <TextView
-        android:id="@+id/textView9"
+        android:id="@+id/sch_item_switchVal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView8"
+        app:layout_constraintTop_toBottomOf="@+id/sch_item_repeat"
         tools:text="Turn: ON" />
 
     <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switch1"
+        android:id="@+id/sch_item_switch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:minWidth="48dp"
@@ -41,6 +41,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toEndOf="@+id/textView8"
+        app:layout_constraintStart_toEndOf="@+id/sch_item_repeat"
         app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

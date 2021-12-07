@@ -1,14 +1,18 @@
 package gr.cs.btlamp
 
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import gr.cs.btlamp.ui.schedule.AddScheduleActivity
+import gr.cs.btlamp.ui.schedule.ScheduleActivity
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.lang.reflect.Type
+import java.time.DayOfWeek
 import java.util.*
 import java.util.concurrent.Executors
-import kotlin.properties.Delegates
 import kotlin.system.exitProcess
 
 
@@ -188,5 +192,62 @@ class ExampleUnitTest {
         val int: Int = 1
         val bytes = int.toByteArray()
         println(bytes.size)
+    }
+
+    @Test
+    fun json_test() {
+        fun fromString(value: String): Array<DayOfWeek> {
+            val listType: Type = object : TypeToken<Array<DayOfWeek>>() {}.type
+            return Gson().fromJson(value, listType)
+        }
+        fun fromArrayList(list: Array<DayOfWeek>): String {
+            val gson = Gson()
+            return gson.toJson(list)
+        }
+
+        val days = arrayOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY)
+        println(fromString(fromArrayList(days)).contentToString())
+    }
+
+    @Test
+    fun scheduleToJson() {
+        fun fromString(value: String): ScheduleActivity.ScheduleNew {
+            val objectType: Type = object : TypeToken<ScheduleActivity.ScheduleNew>() {}.type
+            return Gson().fromJson(value, objectType)
+        }
+        fun fromSchedule(schedule: ScheduleActivity.ScheduleNew): String {
+            val gson = Gson()
+            return gson.toJson(schedule)
+        }
+        val time: Pair<Int, Int> = 10 to 45
+        val switchVal = true
+        val days = arrayOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY)
+        val scheduleNew = ScheduleActivity.ScheduleNew(time, switchVal, days)
+        val remade = fromString(fromSchedule(scheduleNew))
+        println(remade)
+        with(scheduleNew) {
+            assertEquals(this.time, remade.time)
+            assertEquals(this.switch, remade.switch)
+            assertArrayEquals(this.days, remade.days)
+        }
+    }
+
+    @Test
+    fun scheduleListJson() {
+        fun List<ScheduleActivity.ScheduleNew>.toJson(): String = Gson().toJson(this)
+
+        fun scheduleListFromJson(json: String): List<ScheduleActivity.ScheduleNew> {
+            val objectType: Type = object : TypeToken<List<ScheduleActivity.ScheduleNew>>() {}.type
+            return Gson().fromJson(json, objectType)
+        }
+
+        val time: Pair<Int, Int> = 10 to 45
+        val switchVal = true
+        val days = arrayOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY)
+        val scheduleNew = ScheduleActivity.ScheduleNew(time, switchVal, days)
+        val scheduleNew2 = ScheduleActivity.ScheduleNew(11 to 50, switchVal, days)
+        val list = listOf(scheduleNew, scheduleNew2)
+        println(list.toJson())
+        println(scheduleListFromJson(list.toJson()).toJson())
     }
 }

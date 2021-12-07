@@ -15,7 +15,7 @@ import java.util.*
 
 class RepeatActivity : AppCompatActivity() {
 
-    @ExperimentalStdlibApi
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +36,7 @@ class RepeatActivity : AppCompatActivity() {
             }
         }
         save_days_button.setOnClickListener {
-            val array = buildList {
+            val array = mutableListOf<DayOfWeek>().apply {
                 if (checkBox_sunday.isChecked) this += DayOfWeek.SUNDAY
                 if (checkBox_monday.isChecked) this += DayOfWeek.MONDAY
                 if (checkBox_tuesday.isChecked) this += DayOfWeek.TUESDAY
