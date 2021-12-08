@@ -38,15 +38,17 @@ class AddScheduleActivity : AppCompatActivity() {
             .create()
     }
 
-    private var repeatDays: Array<DayOfWeek> = emptyArray()
+//    private lateinit var repeatDays: Array<DayOfWeek>
 
     @RequiresApi(Build.VERSION_CODES.O)
     private val getRepeatDays = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
         if (result.resultCode == Activity.RESULT_OK) {
             val intent = result.data
             // Handle the Intent
-            intent?.getSerializableExtra(daysResult)?.also { it ->
-                @Suppress("UNCHECKED_CAST")
+            intent?.getSerializableExtra(daysResult)?.also {
+                schedule.days = it as Array<DayOfWeek>
+                repeat_days_text.text = schedule.daysToString()
+                /*@Suppress("UNCHECKED_CAST")
                 with(it as Array<DayOfWeek>) {
                     if (size == 0) repeat_days_text.text = RepeatActivity.once
                     else {
@@ -56,10 +58,12 @@ class AddScheduleActivity : AppCompatActivity() {
                         resultIntent.putExtra(daysResult, this)
                     }
                     repeatDays = it
-                }
+                }*/
             }
         }
     }
+
+    private lateinit var schedule: ScheduleActivity.Schedule
 
 //    private var repeatDays: Array<CharSequence>? = null
 
@@ -67,19 +71,43 @@ class AddScheduleActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_schedule)
-        textView5.text = ON
-        repeat_days_text.text = "once"
-        timePickerS.run {
-            Calendar.getInstance().run {
-                hour = get(Calendar.HOUR_OF_DAY)
-                minute = get(Calendar.MINUTE)
+        with(intent?.getParcelableExtra<ScheduleActivity.Schedule>(edit_schedule)) {
+            if (this != null) {
+                schedule = this
+                /*textView5.text = switchToString()
+                repeat_days_text.text = if (days.isNotEmpty()) days.joinToString(separator = ", ")
+                else "once"
+                timePickerS.run {
+                    hour = time.first
+                    minute = time.second
+                }*/
+//                repeatDays = days
+            } else {
+                /*textView5.text = ON
+                repeat_days_text.text = "once"
+                timePickerS.run {
+                    Calendar.getInstance().run {
+                        hour = get(Calendar.HOUR_OF_DAY)
+                        minute = get(Calendar.MINUTE)
+                    }
+                }*/
+//                repeatDays = emptyArray()
+                schedule = ScheduleActivity.Schedule()
+            }
+            checkedItem[0] = schedule.switchToInt()
+            textView5.text = schedule.switchToString()
+            repeat_days_text.text = schedule.daysToString()
+            timePickerS.run {
+                hour = schedule.time.first
+                minute = schedule.time.second
             }
         }
         repeat_view.setOnClickListener {
             // Use the Kotlin extension in activity-ktx
             // passing it the Intent you want to start
             with(Intent(this, RepeatActivity::class.java)) {
-                putExtra(daysResult, repeatDays)
+//                putExtra(daysResult, repeatDays)
+                putExtra(daysResult, schedule.days)
                 getRepeatDays.launch(this)
             }
         }
@@ -87,12 +115,14 @@ class AddScheduleActivity : AppCompatActivity() {
             switchDialog.show()
         }
         button2.setOnClickListener {
-            resultIntent.run{
+            /*resultIntent.run{
                 putExtra(time, timePickerS.hour to timePickerS.minute)
                 putExtra(switchVal, checkedItem[0])
                 putExtra(repeatDaysStr, repeatDays)
-            }
-            setResult(Activity.RESULT_OK, resultIntent)
+            }*/
+            schedule.time = timePickerS.hour to timePickerS.minute
+            schedule.switch = checkedItem[0] == 0
+            setResult(Activity.RESULT_OK, Intent().run { putExtra(edit_schedule, schedule) })
             finish()
         }
     }

@@ -15,6 +15,7 @@ import android.view.View
 import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.snackbar.Snackbar
+import gr.cs.btlamp.ui.schedule.ScheduleActivity
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import java.io.IOException
@@ -288,6 +289,22 @@ class MyBluetoothService : Service() {
         fun enableTriangle() = write(ENABLE_TRIANGLE)
         fun enableTimer(hours: Byte, mins: Byte) = write(ENABLE_TIMER, hours, mins)
         fun disableTimer() = write(DISABLE_TIMER)
+        fun addSchedule(schedule: ScheduleActivity.Schedule) = with(schedule) {
+            write(
+                ADD_SCHEDULE,
+                switch.toByte(),
+                getHour().toByte(),
+                getMinute().toByte(),
+                *daysToByteArray(),
+                *id.encodeToByteArray()
+            ) }
+        fun removeSchedule(schedule: ScheduleActivity.Schedule) =
+            write(REMOVE_SCHEDULE, *schedule.id.encodeToByteArray())
+        fun changeSchedule(schedule: ScheduleActivity.Schedule) {
+            // TODO can make it more efficient by replacing only the changed fields
+            removeSchedule(schedule)
+            addSchedule(schedule)
+        }
     }
 }
 
@@ -308,6 +325,8 @@ private const val ENABLE_SQUARE = '4'.toByte()
 private const val ENABLE_TRIANGLE = '5'.toByte()
 private const val ENABLE_TIMER = 'T'.toByte()
 private const val DISABLE_TIMER = 't'.toByte()
+private const val ADD_SCHEDULE = 'A'.toByte()
+private const val REMOVE_SCHEDULE = 'a'.toByte()
 
 const val SINE = "Sine"
 const val COSINE = "Cosine"

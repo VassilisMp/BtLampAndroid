@@ -2,7 +2,6 @@ package gr.cs.btlamp
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import gr.cs.btlamp.ui.schedule.AddScheduleActivity
 import gr.cs.btlamp.ui.schedule.ScheduleActivity
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -211,18 +210,18 @@ class ExampleUnitTest {
 
     @Test
     fun scheduleToJson() {
-        fun fromString(value: String): ScheduleActivity.ScheduleNew {
-            val objectType: Type = object : TypeToken<ScheduleActivity.ScheduleNew>() {}.type
+        fun fromString(value: String): ScheduleActivity.Schedule {
+            val objectType: Type = object : TypeToken<ScheduleActivity.Schedule>() {}.type
             return Gson().fromJson(value, objectType)
         }
-        fun fromSchedule(schedule: ScheduleActivity.ScheduleNew): String {
+        fun fromSchedule(schedule: ScheduleActivity.Schedule): String {
             val gson = Gson()
             return gson.toJson(schedule)
         }
         val time: Pair<Int, Int> = 10 to 45
         val switchVal = true
         val days = arrayOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY)
-        val scheduleNew = ScheduleActivity.ScheduleNew(time, switchVal, days)
+        val scheduleNew = ScheduleActivity.Schedule(time, switchVal, days)
         val remade = fromString(fromSchedule(scheduleNew))
         println(remade)
         with(scheduleNew) {
@@ -234,20 +233,29 @@ class ExampleUnitTest {
 
     @Test
     fun scheduleListJson() {
-        fun List<ScheduleActivity.ScheduleNew>.toJson(): String = Gson().toJson(this)
+        fun List<ScheduleActivity.Schedule>.toJson(): String = Gson().toJson(this)
 
-        fun scheduleListFromJson(json: String): List<ScheduleActivity.ScheduleNew> {
-            val objectType: Type = object : TypeToken<List<ScheduleActivity.ScheduleNew>>() {}.type
+        fun scheduleListFromJson(json: String): List<ScheduleActivity.Schedule> {
+            val objectType: Type = object : TypeToken<List<ScheduleActivity.Schedule>>() {}.type
             return Gson().fromJson(json, objectType)
         }
 
         val time: Pair<Int, Int> = 10 to 45
         val switchVal = true
         val days = arrayOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY)
-        val scheduleNew = ScheduleActivity.ScheduleNew(time, switchVal, days)
-        val scheduleNew2 = ScheduleActivity.ScheduleNew(11 to 50, switchVal, days)
+        val scheduleNew = ScheduleActivity.Schedule(time, switchVal, days)
+        val scheduleNew2 = ScheduleActivity.Schedule(11 to 50, switchVal, days)
         val list = listOf(scheduleNew, scheduleNew2)
         println(list.toJson())
         println(scheduleListFromJson(list.toJson()).toJson())
+    }
+
+    @Test
+    fun parcelSchedule() {
+        val time: Pair<Int, Int> = 10 to 45
+        val switchVal = true
+        val days = arrayOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY)
+        val scheduleNew = ScheduleActivity.Schedule(time, switchVal, days)
+        print(scheduleNew)
     }
 }

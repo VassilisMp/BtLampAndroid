@@ -178,3 +178,5 @@ fun View.enable() {
     }
     isEnabled = true
 }
+
+fun Boolean.toByte(): Byte = if (this) 1 else 0
