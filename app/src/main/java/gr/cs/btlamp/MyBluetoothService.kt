@@ -107,48 +107,9 @@ class MyBluetoothService : Service() {
         return mBinder
     }
 
-    override fun onRebind(intent: Intent?) {
-        destroyTimer?.cancel()
-        showToast("onRebind")
-        super.onRebind(intent)
-    }
-
-
-
-    override fun onUnbind(intent: Intent?): Boolean {
-//        return super.onUnbind(intent)
-        bound = false
-        (mBinder as MyBluetoothService.LocalBinder).view = null
-        /*destroyTimer = scope.launch(Dispatchers.Main) {
-            delay(2000)
-            if (!bound) {
-                SnackbarWrapper.make(applicationContext, "Destroyed service", Snackbar.LENGTH_LONG).show()
-                stopSelf()
-                onDestroy()
-            }
-        }*/
-        return true
-    }
-
-    private val mBinder: IBinder = LocalBinder()
-
-    inner class LocalBinder : Binder() {
-        // Return this instance of LocalService so clients can call public methods
-        val service: MyBluetoothService
-            get() = this@MyBluetoothService
-        var view: View? = null
-    }
-
     // bluetooth connection function
     @Suppress("BlockingMethodInNonBlockingContext")
     fun BTconnect(): Job = scope.launch(btDispatcher) {
-        /*val fetchUuidsWithSdp = device?.fetchUuidsWithSdp()
-        Log.d(TAG, fetchUuidsWithSdp.toString())
-        device?.uuids?.forEach {
-            Log.d(TAG, it.uuid.toString())
-        }*/
-        showToastC("Hi")
-        val binder = mBinder as MyBluetoothService.LocalBinder
         if (bluetoothAdapter?.state != BluetoothAdapter.STATE_ON) {
             mBinder.view?.snackBarMake(
                     "Bluetooth is off, turn on and retry.",

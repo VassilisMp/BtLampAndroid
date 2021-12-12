@@ -1,5 +1,6 @@
 package gr.cs.btlamp.ui
 
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.ComponentName
 import android.content.DialogInterface
@@ -12,11 +13,19 @@ import android.util.Log
 import android.view.View
 import android.widget.Switch
 import android.widget.TimePicker
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import gr.cs.btlamp.*
+import gr.cs.btlamp.android.bluetoothchat.BluetoothChatFragment
+import gr.cs.btlamp.android.bluetoothchat.BluetoothChatService
+import gr.cs.btlamp.android.common.logger.LogFragment
+import gr.cs.btlamp.android.common.logger.LogWrapper
+import gr.cs.btlamp.android.common.logger.MessageOnlyLogFilter
 import gr.cs.btlamp.customViews.TimePickerDialogCustom
 import gr.cs.btlamp.ui.schedule.ScheduleActivity
 import gr.cs.btlamp.ui.tabbed.SectionsPagerAdapter
@@ -34,49 +43,6 @@ class TabbedActivity : AppCompatActivity() {
 
     private val mBluetoothAdapter: BluetoothAdapter? by lazy { BluetoothAdapter.getDefaultAdapter() }
 
-    /* service binding code */
-    internal var mService: MyBluetoothService? = null
-    private var mBound: Boolean = false
-    private var channelListenJob: Job? = null
-
-    /** Defines callbacks for service binding, passed to bindService()  */
-    private val connection = object : ServiceConnection {
-
-        override fun onServiceConnected(className: ComponentName, service: IBinder) {
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
-            val binder = service as MyBluetoothService.LocalBinder
-            mService = binder.service
-            // assign view, so that service can show snackbar
-            binder.view = findViewById<View>(android.R.id.content).findViewById(R.id.corLay)
-            mService?.setConnectionListener(object : MyBluetoothService.ConnectionListener {
-                override fun onConnected() {
-                    channelListenJob = GlobalScope.launch(Dispatchers.IO) {
-                        // here we print received values using `for` loop (until the channel is closed)
-                        for (string in mService!!.channel) {
-                            Log.d(TAG, "Message received: $string")
-                            showToastC("Message received: $string")
-                        }
-                        println("Done!")
-                    }
-                    mBound = true
-                }
-
-                override fun onDisconnected() {
-                    channelListenJob?.cancel()
-                    channelListenJob = null
-                    mBound = false
-                }
-
-            })
-        }
-
-        override fun onServiceDisconnected(arg0: ComponentName) {
-            mBound = false
-            channelListenJob?.cancel()
-            channelListenJob = null
-        }
-    }
-
     private var timerSwitch: Switch? = null
     private var timer: CountDownTimer? = null
     private var timeRemaining: Pair<Int, Int>? by Delegates.observable(null) { _, _, newValue ->
@@ -88,17 +54,64 @@ class TabbedActivity : AppCompatActivity() {
     // time is picked from the time picker dialog
     private lateinit var timePicker: TimePickerDialogCustom
 
+    /**
+     * Member object for the bluetooth service
+     */
+    private val mChatService: BluetoothChatService? = null
+
+    var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        Log.d(TAG, this::onActivityResult.name)
+        when (result.requestCode) {
+            REQUEST_ENABLE_BT -> {
+                when (resultCode) {
+//                    RESULT_OK ->
+                    RESULT_CANCELED -> {
+//                        finish()
+                        btPermission()
+                    }
+                }
+            }
+        }
+        if (result.resultCode == Activity.RESULT_OK) {
+            // There are no request codes
+            val data: Intent? = result.data
+            doSomeOperations()
+        }
+    }
+
+    private fun btPermission() {
+        if (mBluetoothAdapter?.isEnabled == false) {
+            val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            resultLauncher.launch(intent)
+        }
+        if (mBluetoothAdapter == null) {
+            bluetoothNotAvailable()
+        } else {
+            if (mBluetoothAdapter!!.isEnabled) {
+                bluetoothEnabled()
+            } else {
+                bluetoothDisabled()
+            }
+        }
+    }
+
     override fun onStart() {
         super.onStart()
-        Intent(this, MyBluetoothService::class.java).also { intent ->
-            bindService(intent, connection, BIND_AUTO_CREATE)
+        initializeLogging()
+        if (mBluetoothAdapter == null) return
+        // If BT is not on, request that it be enabled.
+        // setupChat() will then be called during onActivityResult
+        if (!mBluetoothAdapter!!.isEnabled) {
+            val enableIntent = Intent(BluetoothChatFragment)
+            startActivityForResult(enableIntent, BluetoothChatFragment.REQUEST_ENABLE_BT)
+            // Otherwise, setup the chat session
+        } else if (mChatService == null) {
+            setupChat()
         }
     }
 
     override fun onStop() {
         super.onStop()
-        unbindService(connection)
-        mBound = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -109,6 +122,11 @@ class TabbedActivity : AppCompatActivity() {
         viewPager.adapter = sectionsPagerAdapter
         val tabs: TabLayout = findViewById(R.id.tabs)
         tabs.setupWithViewPager(viewPager)
+        // If the adapter is null, then Bluetooth is not supported
+        if (mBluetoothAdapter == null) {
+            Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show()
+            finish()
+        }
         lifecycleScope.launchWhenStarted { btPermission() }
         switchButton.setOnClickListener {
             if (switchButton.isChecked)
@@ -179,22 +197,6 @@ class TabbedActivity : AppCompatActivity() {
         }
     }
 
-    private fun btPermission() {
-        if (mBluetoothAdapter?.isEnabled == false) {
-            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
-        }
-        if (mBluetoothAdapter == null) {
-            bluetoothNotAvailable()
-        } else {
-            if (mBluetoothAdapter!!.isEnabled) {
-                bluetoothEnabled()
-            } else {
-                bluetoothDisabled()
-            }
-        }
-    }
-
     // Device doesn't support Bluetooth
     private fun bluetoothNotAvailable() = showToast("Device doesn't support Bluetooth")
 
@@ -205,19 +207,23 @@ class TabbedActivity : AppCompatActivity() {
 //        btPermission()
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        Log.d(TAG, this::onActivityResult.name)
-        when (requestCode) {
-            REQUEST_ENABLE_BT -> {
-                when (resultCode) {
-//                    RESULT_OK ->
-                    RESULT_CANCELED -> {
-//                        finish()
-                        btPermission()
-                    }
-                }
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data)
+    /**
+     * Create a chain of targets that will receive log data
+     */
+    private fun initializeLogging() {
+        // Wraps Android's native log framework.
+        val logWrapper = LogWrapper()
+        // Using Log, front-end to the logging chain, emulates android.util.log method signatures.
+        gr.cs.btlamp.android.common.logger.Log.setLogNode(logWrapper)
+
+        // Filter strips out everything except the message text.
+        val msgFilter = MessageOnlyLogFilter()
+        logWrapper.next = msgFilter
+
+        // On screen logging via a fragment with a TextView.
+        val logFragment = supportFragmentManager
+            .findFragmentById(R.id.log_fragment) as LogFragment?
+        msgFilter.next = logFragment!!.logView
+        gr.cs.btlamp.android.common.logger.Log.i(TAG, "Ready")
     }
 }
