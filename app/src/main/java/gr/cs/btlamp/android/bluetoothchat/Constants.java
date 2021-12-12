@@ -17,7 +17,7 @@
 package gr.cs.btlamp.android.bluetoothchat;
 
 /**
- * Defines several constants used between {@link BluetoothChatService} and the UI.
+ * Defines several constants used between {@link BluetoothService} and the UI.
  */
 public interface Constants {
 

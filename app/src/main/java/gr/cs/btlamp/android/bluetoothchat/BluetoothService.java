@@ -39,9 +39,9 @@ import gr.cs.btlamp.android.common.logger.Log;
  * incoming connections, a thread for connecting with a device, and a
  * thread for performing data transmissions when connected.
  */
-public class BluetoothChatService {
+public class BluetoothService {
     // Debugging
-    private static final String TAG = "BluetoothChatService";
+    private static final String TAG = "BluetoothService";
 
     // Name for the SDP record when creating server socket
     private static final String NAME_SECURE = "BluetoothChatSecure";
@@ -75,7 +75,7 @@ public class BluetoothChatService {
      * @param context The UI Activity Context
      * @param handler A Handler to send messages back to the UI Activity
      */
-    public BluetoothChatService(Context context, Handler handler) {
+    public BluetoothService(Context context, Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         mNewState = mState;
@@ -273,7 +273,7 @@ public class BluetoothChatService {
         updateUserInterfaceTitle();
 
         // Start the service over to restart listening mode
-        BluetoothChatService.this.start();
+        BluetoothService.this.start();
     }
 
     /**
@@ -292,7 +292,7 @@ public class BluetoothChatService {
         updateUserInterfaceTitle();
 
         // Start the service over to restart listening mode
-        BluetoothChatService.this.start();
+        BluetoothService.this.start();
     }
 
     /**
@@ -345,7 +345,7 @@ public class BluetoothChatService {
 
                 // If a connection was accepted
                 if (socket != null) {
-                    synchronized (BluetoothChatService.this) {
+                    synchronized (BluetoothService.this) {
                         switch (mState) {
                             case STATE_LISTEN:
                             case STATE_CONNECTING:
@@ -438,7 +438,7 @@ public class BluetoothChatService {
             }
 
             // Reset the ConnectThread because we're done
-            synchronized (BluetoothChatService.this) {
+            synchronized (BluetoothService.this) {
                 mConnectThread = null;
             }
 

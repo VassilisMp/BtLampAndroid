@@ -1,16 +1,12 @@
 package gr.cs.btlamp.ui
 
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
-import android.content.ComponentName
+import android.bluetooth.BluetoothDevice
 import android.content.DialogInterface
 import android.content.Intent
-import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.os.IBinder
 import android.util.Log
-import android.view.View
 import android.widget.Switch
 import android.widget.TimePicker
 import android.widget.Toast
@@ -22,7 +18,7 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import gr.cs.btlamp.*
 import gr.cs.btlamp.android.bluetoothchat.BluetoothChatFragment
-import gr.cs.btlamp.android.bluetoothchat.BluetoothChatService
+import gr.cs.btlamp.android.bluetoothchat.BluetoothService
 import gr.cs.btlamp.android.common.logger.LogFragment
 import gr.cs.btlamp.android.common.logger.LogWrapper
 import gr.cs.btlamp.android.common.logger.MessageOnlyLogFilter
@@ -30,10 +26,6 @@ import gr.cs.btlamp.customViews.TimePickerDialogCustom
 import gr.cs.btlamp.ui.schedule.ScheduleActivity
 import gr.cs.btlamp.ui.tabbed.SectionsPagerAdapter
 import kotlinx.android.synthetic.main.activity_tabbed.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.properties.Delegates
 
@@ -57,33 +49,31 @@ class TabbedActivity : AppCompatActivity() {
     /**
      * Member object for the bluetooth service
      */
-    private val mChatService: BluetoothChatService? = null
+    private val mService: BluetoothService? = null
 
-    var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        Log.d(TAG, this::onActivityResult.name)
-        when (result.requestCode) {
-            REQUEST_ENABLE_BT -> {
-                when (resultCode) {
-//                    RESULT_OK ->
-                    RESULT_CANCELED -> {
-//                        finish()
-                        btPermission()
-                    }
-                }
+    var btPermResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        Log.d(TAG, "BtPermissionLauncher")
+        when (result.resultCode) {
+            RESULT_OK -> {
+
             }
-        }
-        if (result.resultCode == Activity.RESULT_OK) {
-            // There are no request codes
-            val data: Intent? = result.data
-            doSomeOperations()
+            RESULT_CANCELED -> {
+//            finish()
+                // User did not enable Bluetooth or an error occurred
+                gr.cs.btlamp.android.common.logger.Log.d(TAG, "BT not enabled")
+                Toast.makeText(
+                    this, R.string.bt_not_enabled_leaving,
+                    Toast.LENGTH_SHORT
+                ).show()
+                finish()
+//                btPermission()
+            }
         }
     }
 
     private fun btPermission() {
-        if (mBluetoothAdapter?.isEnabled == false) {
-            val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            resultLauncher.launch(intent)
-        }
+        if (mBluetoothAdapter?.isEnabled == false)
+            btPermResultLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
         if (mBluetoothAdapter == null) {
             bluetoothNotAvailable()
         } else {
@@ -105,7 +95,7 @@ class TabbedActivity : AppCompatActivity() {
             val enableIntent = Intent(BluetoothChatFragment)
             startActivityForResult(enableIntent, BluetoothChatFragment.REQUEST_ENABLE_BT)
             // Otherwise, setup the chat session
-        } else if (mChatService == null) {
+        } else if (mService == null) {
             setupChat()
         }
     }
@@ -205,6 +195,26 @@ class TabbedActivity : AppCompatActivity() {
     private fun bluetoothDisabled() {
         showToast("Bluetooth is disabled, please enable first.")
 //        btPermission()
+    }
+
+    /**
+     * Establish connection with other device
+     *
+     * @param data   An [Intent] with [DeviceListActivity.EXTRA_DEVICE_ADDRESS] extra.
+     * @param secure Socket Security type - Secure (true) , Insecure (false)
+     */
+    private fun connectDevice(data: Intent, secure: Boolean) {
+        // Get the device MAC address
+        val extras = data.extras ?: return
+        val address = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS)
+        // Get the BluetoothDevice object
+        val device = mBluetoothAdapter!!.getRemoteDevice(address)
+        bluetoothAdapter?.bondedDevices?.firstOrNull { it.name == btDeviceName }?.apply {
+            bluetoothAdapter?.cancelDiscovery()
+            showToastC("Paired with $btDeviceName")
+        }
+        // Attempt to connect to the device
+        mChatService.connect(device, secure)
     }
 
     /**

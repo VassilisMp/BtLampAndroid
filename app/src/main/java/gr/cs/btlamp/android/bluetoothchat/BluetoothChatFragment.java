@@ -16,7 +16,6 @@
 
 package gr.cs.btlamp.android.bluetoothchat;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -24,23 +23,15 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.view.KeyEvent;
-import android.view.LayoutInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 
 import java.lang.ref.WeakReference;
 
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import gr.cs.btlamp.R;
@@ -86,7 +77,7 @@ public class BluetoothChatFragment extends Fragment {
     /**
      * Member object for the chat services
      */
-    private BluetoothChatService mChatService = null;
+    private BluetoothService mChatService = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -137,7 +128,7 @@ public class BluetoothChatFragment extends Fragment {
         // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
         if (mChatService != null) {
             // Only if the state is STATE_NONE, do we know that we haven't started already
-            if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
+            if (mChatService.getState() == BluetoothService.STATE_NONE) {
                 // Start the Bluetooth chat services
                 mChatService.start();
             }
@@ -151,7 +142,7 @@ public class BluetoothChatFragment extends Fragment {
      */
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
-        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+        if (mChatService.getState() != BluetoothService.STATE_CONNECTED) {
             Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -189,16 +180,16 @@ public class BluetoothChatFragment extends Fragment {
             switch (msg.what) {
                 case Constants.MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
-                        case BluetoothChatService.STATE_CONNECTED:
+                        case BluetoothService.STATE_CONNECTED:
                             service.setStatus(getString(R.string.title_connected_to,
                                     mConnectedDeviceName));
                             mConversationArrayAdapter.clear();
                             break;
-                        case BluetoothChatService.STATE_CONNECTING:
+                        case BluetoothService.STATE_CONNECTING:
                             setStatus(R.string.title_connecting);
                             break;
-                        case BluetoothChatService.STATE_LISTEN:
-                        case BluetoothChatService.STATE_NONE:
+                        case BluetoothService.STATE_LISTEN:
+                        case BluetoothService.STATE_NONE:
                             setStatus(R.string.title_not_connected);
                             break;
                     }
@@ -263,25 +254,6 @@ public class BluetoothChatFragment extends Fragment {
                     }
                 }
         }
-    }
-
-    /**
-     * Establish connection with other device
-     *
-     * @param data   An {@link Intent} with {@link DeviceListActivity#EXTRA_DEVICE_ADDRESS} extra.
-     * @param secure Socket Security type - Secure (true) , Insecure (false)
-     */
-    private void connectDevice(Intent data, boolean secure) {
-        // Get the device MAC address
-        Bundle extras = data.getExtras();
-        if (extras == null) {
-            return;
-        }
-        String address = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-        // Get the BluetoothDevice object
-        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-        // Attempt to connect to the device
-        mChatService.connect(device, secure);
     }
 
 }
