@@ -107,14 +107,53 @@ class MyBluetoothService : Service() {
         return mBinder
     }
 
+    override fun onRebind(intent: Intent?) {
+        destroyTimer?.cancel()
+        showToast("onRebind")
+        super.onRebind(intent)
+    }
+
+
+
+    override fun onUnbind(intent: Intent?): Boolean {
+//        return super.onUnbind(intent)
+        bound = false
+        (mBinder as MyBluetoothService.LocalBinder).view = null
+        /*destroyTimer = scope.launch(Dispatchers.Main) {
+            delay(2000)
+            if (!bound) {
+                SnackbarWrapper.make(applicationContext, "Destroyed service", Snackbar.LENGTH_LONG).show()
+                stopSelf()
+                onDestroy()
+            }
+        }*/
+        return true
+    }
+
+    private val mBinder: IBinder = LocalBinder()
+
+    inner class LocalBinder : Binder() {
+        // Return this instance of LocalService so clients can call public methods
+        val service: MyBluetoothService
+            get() = this@MyBluetoothService
+        var view: View? = null
+    }
+
     // bluetooth connection function
     @Suppress("BlockingMethodInNonBlockingContext")
     fun BTconnect(): Job = scope.launch(btDispatcher) {
+        /*val fetchUuidsWithSdp = device?.fetchUuidsWithSdp()
+        Log.d(TAG, fetchUuidsWithSdp.toString())
+        device?.uuids?.forEach {
+            Log.d(TAG, it.uuid.toString())
+        }*/
+        showToastC("Hi")
+        val binder = mBinder as MyBluetoothService.LocalBinder
         if (bluetoothAdapter?.state != BluetoothAdapter.STATE_ON) {
             mBinder.view?.snackBarMake(
-                    "Bluetooth is off, turn on and retry.",
-                    actionText = "Retry",
-                    block = { BTconnect() }
+                "Bluetooth is off, turn on and retry.",
+                actionText = "Retry",
+                block = { BTconnect() }
             )?: showToast("Bluetooth is off, turn on and retry.")
             return@launch
         }
@@ -122,10 +161,10 @@ class MyBluetoothService : Service() {
             bluetoothAdapter?.cancelDiscovery()
             showToastC("Paired with $btDeviceName")
         } ?: mBinder.view?.snackBarMake(
-                    "Not paired with device, pair with $btDeviceName first and retry.",
-                    actionText = "Retry",
-                    block = { BTconnect() }
-            ).run { return@launch }
+            "Not paired with device, pair with $btDeviceName first and retry.",
+            actionText = "Retry",
+            block = { BTconnect() }
+        ).run { return@launch }
         try {
             socket = device?.createRfcommSocketToServiceRecord(PORT_UUID)
             socket?.connect() ?: throw IOException("Couldn't connect")
@@ -198,15 +237,15 @@ class MyBluetoothService : Service() {
                         connectionListener?.onDisconnected()
                         val binder = mBinder as MyBluetoothService.LocalBinder
                         mBinder.view?.snackBarMake(
-                                "Lost bluetooth connection with ${device?.name}",
-                                actionText = "Retry",
-                                block = { BTconnect() }
+                            "Lost bluetooth connection with ${device?.name}",
+                            actionText = "Retry",
+                            block = { BTconnect() }
                         )
                     }
                 }
                 BluetoothAdapter.ACTION_STATE_CHANGED -> {
                     when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
-                            BluetoothAdapter.ERROR)) {
+                        BluetoothAdapter.ERROR)) {
                         BluetoothAdapter.STATE_OFF -> {
                             showToast("Bluetooth off")
                             scope.cancel()
@@ -227,9 +266,9 @@ class MyBluetoothService : Service() {
     // TODO finish API
     inner class BtApi {
         fun changeColor(red: Byte, green: Byte, blue: Byte, alpha: Byte) =
-                write(CHANGE_COLOR, red, green, blue, alpha)
+            write(CHANGE_COLOR, red, green, blue, alpha)
         fun changeColor(color: Int) =
-                write(CHANGE_COLOR, *color.toByteArray())
+            write(CHANGE_COLOR, *color.toByteArray())
         @ExperimentalUnsignedTypes
         // UInt size is 32-bit, In C lang unsigned long is 32-bit
         fun changePowerInterval(interval: UInt) = write(CHANGE_POWER_INTERVAL, *interval.toByteArray())
