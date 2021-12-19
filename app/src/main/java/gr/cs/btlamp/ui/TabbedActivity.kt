@@ -1,36 +1,41 @@
 package gr.cs.btlamp.ui
 
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
 import android.content.DialogInterface
 import android.content.Intent
-import android.os.Bundle
-import android.os.CountDownTimer
+import android.os.*
 import android.util.Log
 import android.widget.Switch
 import android.widget.TimePicker
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import gr.cs.btlamp.*
-import gr.cs.btlamp.android.bluetoothchat.BluetoothChatFragment
 import gr.cs.btlamp.android.bluetoothchat.BluetoothService
+import gr.cs.btlamp.android.bluetoothchat.BluetoothService.STATE_CONNECTED
+import gr.cs.btlamp.android.bluetoothchat.Constants
 import gr.cs.btlamp.android.common.logger.LogFragment
 import gr.cs.btlamp.android.common.logger.LogWrapper
 import gr.cs.btlamp.android.common.logger.MessageOnlyLogFilter
 import gr.cs.btlamp.customViews.TimePickerDialogCustom
 import gr.cs.btlamp.ui.schedule.ScheduleActivity
 import gr.cs.btlamp.ui.tabbed.SectionsPagerAdapter
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_tabbed.*
+import kotlinx.android.synthetic.main.activity_tabbed.left_time_btn
+import kotlinx.android.synthetic.main.activity_tabbed.schedule_btn
+import kotlinx.android.synthetic.main.activity_tabbed.switchButton
+import kotlinx.coroutines.launch
+import java.lang.ref.WeakReference
 import java.util.*
 import kotlin.properties.Delegates
 
 private const val TAG = "TabbedActivity"
 private const val REQUEST_ENABLE_BT: Int = 1
+
 class TabbedActivity : AppCompatActivity() {
 
     private val mBluetoothAdapter: BluetoothAdapter? by lazy { BluetoothAdapter.getDefaultAdapter() }
@@ -49,13 +54,17 @@ class TabbedActivity : AppCompatActivity() {
     /**
      * Member object for the bluetooth service
      */
-    private val mService: BluetoothService? = null
+    internal var mService: BluetoothService? = null
 
-    var btPermResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+    private val btPermResultLauncher = registerForActivityResult(
+        ActivityResultContracts
+            .StartActivityForResult()
+    ) { result ->
         Log.d(TAG, "BtPermissionLauncher")
         when (result.resultCode) {
             RESULT_OK -> {
-
+                mService = BluetoothService(this, mHandler)
+                connectDevice()
             }
             RESULT_CANCELED -> {
 //            finish()
@@ -66,12 +75,11 @@ class TabbedActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
                 finish()
-//                btPermission()
             }
         }
     }
 
-    private fun btPermission() {
+    /*private fun btPermission() {
         if (mBluetoothAdapter?.isEnabled == false)
             btPermResultLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
         if (mBluetoothAdapter == null) {
@@ -83,25 +91,29 @@ class TabbedActivity : AppCompatActivity() {
                 bluetoothDisabled()
             }
         }
-    }
+    }*/
 
     override fun onStart() {
         super.onStart()
         initializeLogging()
-        if (mBluetoothAdapter == null) return
         // If BT is not on, request that it be enabled.
         // setupChat() will then be called during onActivityResult
         if (!mBluetoothAdapter!!.isEnabled) {
-            val enableIntent = Intent(BluetoothChatFragment)
-            startActivityForResult(enableIntent, BluetoothChatFragment.REQUEST_ENABLE_BT)
+            btPermResultLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
             // Otherwise, setup the chat session
         } else if (mService == null) {
-            setupChat()
+            mService = BluetoothService(this, mHandler)
+            connectDevice()
+        } else if (mService!!.state != STATE_CONNECTED) {
+
+            connectDevice()
         }
+//        btPermission()
     }
 
     override fun onStop() {
         super.onStop()
+        mService?.stop()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,12 +129,14 @@ class TabbedActivity : AppCompatActivity() {
             Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show()
             finish()
         }
-        lifecycleScope.launchWhenStarted { btPermission() }
+//        lifecycleScope.launchWhenStarted { btPermission() }
         switchButton.setOnClickListener {
             if (switchButton.isChecked)
-                mService?.btApi?.enableLight()
+//                mService?.btApi?.enableLight()
+                mService?.write(arrayOf('L'.toByte()).toByteArray())
             else
-                mService?.btApi?.disableLight()
+//                mService?.btApi?.disableLight()
+                mService?.write(arrayOf('l'.toByte()).toByteArray())
         }
         timePicker = object : TimePickerDialogCustom(
             this@TabbedActivity,
@@ -143,14 +157,28 @@ class TabbedActivity : AppCompatActivity() {
             override fun onClick(dialog: DialogInterface, which: Int) {
                 super.onClick(dialog, which)
                 if (which == BUTTON_POSITIVE && timerSwitch!!.isChecked) {
-                    mService?.btApi?.enableTimer(timeRemaining!!.first.toByte(), timeRemaining!!.second.toByte())?.invokeOnCompletion {
-                            if (it == null) {
-                                timer = object : CountDownTimer(timeToMillis(timeRemaining!!.first, timeRemaining!!.second), 60000) {
-                                    override fun onTick(millisUntilFinished: Long) { timeRemaining = millisToTime(millisUntilFinished) }
-                                    override fun onFinish() { timerSwitch?.isChecked = false }
-                                }.start()
-                            }
-                    }
+                    // TODO
+                    /*mService?.btApi?.enableTimer(
+                        timeRemaining!!.first.toByte(),
+                        timeRemaining!!.second.toByte()
+                    )?.invokeOnCompletion {
+                        if (it == null) {
+                            timer = object : CountDownTimer(
+                                timeToMillis(
+                                    timeRemaining!!.first,
+                                    timeRemaining!!.second
+                                ), 60000
+                            ) {
+                                override fun onTick(millisUntilFinished: Long) {
+                                    timeRemaining = millisToTime(millisUntilFinished)
+                                }
+
+                                override fun onFinish() {
+                                    timerSwitch?.isChecked = false
+                                }
+                            }.start()
+                        }
+                    }*/
                 } else if (which == BUTTON_NEGATIVE && timerSwitch!!.isChecked) {
                     if (timer == null) timerSwitch!!.toggle()
                 }
@@ -165,15 +193,16 @@ class TabbedActivity : AppCompatActivity() {
             // initialize as disabled, it's needed only on the first dialog open
             if (!timerSwitch!!.isChecked) timePickerView.isEnabled = false
             // set timerSwitch listener if it hasn't been set yet
-            if(!timerSwitch!!.hasOnClickListeners()) {
+            if (!timerSwitch!!.hasOnClickListeners()) {
                 timerSwitch!!.setOnCheckedChangeListener { _, isChecked ->
-                    when(isChecked) {
+                    when (isChecked) {
                         true -> timePickerView.enable()
                         false -> {
                             if (timer != null) {
                                 timer!!.cancel()
                                 timer = null
-                                mService?.btApi?.disableTimer()
+                                    // TODO
+//                                mService?.btApi?.disableTimer()
                             }
                             timePickerView.disable()
                             timePicker.updateTime(0, 0)
@@ -184,6 +213,20 @@ class TabbedActivity : AppCompatActivity() {
         }
         schedule_btn.setOnClickListener {
             startActivity(Intent(this, ScheduleActivity::class.java))
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Performing this check in onResume() covers the case in which BT was
+        // not enabled during onStart(), so we were paused to enable it...
+        // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
+        if (mService != null) {
+            // Only if the state is STATE_NONE, do we know that we haven't started already
+            if (mService!!.state == BluetoothService.STATE_NONE) {
+                // Start the Bluetooth services
+                mService!!.start()
+            }
         }
     }
 
@@ -203,18 +246,81 @@ class TabbedActivity : AppCompatActivity() {
      * @param data   An [Intent] with [DeviceListActivity.EXTRA_DEVICE_ADDRESS] extra.
      * @param secure Socket Security type - Secure (true) , Insecure (false)
      */
-    private fun connectDevice(data: Intent, secure: Boolean) {
+    private fun connectDevice(
+        btDeviceName: String = "HC-06", /*data: Intent, */secure: Boolean =
+            true
+    ) {
         // Get the device MAC address
-        val extras = data.extras ?: return
-        val address = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS)
+//        val extras = data.extras ?: return
+//        val address = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS)
         // Get the BluetoothDevice object
-        val device = mBluetoothAdapter!!.getRemoteDevice(address)
-        bluetoothAdapter?.bondedDevices?.firstOrNull { it.name == btDeviceName }?.apply {
-            bluetoothAdapter?.cancelDiscovery()
-            showToastC("Paired with $btDeviceName")
+//        val device = mBluetoothAdapter!!.getRemoteDevice(address)
+        val device =
+            mBluetoothAdapter?.bondedDevices?.firstOrNull { it.name == btDeviceName }?.apply {
+                mBluetoothAdapter?.cancelDiscovery()
+//            showToastC("Paired with ${gr.cs.btlamp.btDeviceName}")
+            }
+        if (device == null) {
+            lifecycleScope.launch {
+                view?.snackBarMake(
+                    "Not paired with device, pair with $btDeviceName first and retry.",
+                    actionText = "Retry",
+                    block = { connectDevice() }
+                )
+            }
+        } else {
+            // Attempt to connect to the device
+            mService?.connect(device, secure)
         }
-        // Attempt to connect to the device
-        mChatService.connect(device, secure)
+    }
+
+    /**
+     * The Handler that gets information back from the BluetoothChatService
+     */
+    private val mHandler: Handler = HandlerImpl(this)
+
+    internal class HandlerImpl(mService: TabbedActivity) : Handler(Looper.getMainLooper()) {
+        private val mService: WeakReference<TabbedActivity> = WeakReference(mService)
+        override fun handleMessage(msg: Message) {
+            val service = mService.get() ?: return
+            val activity = service
+            when (msg.what) {
+                Constants.MESSAGE_STATE_CHANGE -> when (msg.arg1) {
+                    BluetoothService.STATE_CONNECTED -> {}
+                    BluetoothService.STATE_CONNECTING -> {}
+                    BluetoothService.STATE_LISTEN, BluetoothService.STATE_NONE -> { /* state note
+                     connected */
+                    }
+                }
+                Constants.MESSAGE_WRITE -> {
+                    val writeBuf = msg.obj as ByteArray
+                    // construct a string from the buffer
+                    val writeMessage = String(writeBuf)
+                }
+                Constants.MESSAGE_READ -> {
+                    val readBuf = msg.obj as ByteArray
+                    // construct a string from the valid bytes in the buffer
+                    val readMessage = String(readBuf, 0, msg.arg1)
+                }
+                Constants.MESSAGE_DEVICE_NAME -> {
+                    // save the connected device's name
+                    val mConnectedDeviceName = msg.data.getString(Constants.DEVICE_NAME)
+                    if (null != activity) {
+                        Toast.makeText(
+                            activity, "Connected to "
+                                    + mConnectedDeviceName, Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                Constants.MESSAGE_TOAST -> if (null != activity) {
+                    Toast.makeText(
+                        activity, msg.data.getString(Constants.TOAST),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+
     }
 
     /**
@@ -230,10 +336,11 @@ class TabbedActivity : AppCompatActivity() {
         val msgFilter = MessageOnlyLogFilter()
         logWrapper.next = msgFilter
 
+        // TODO
         // On screen logging via a fragment with a TextView.
-        val logFragment = supportFragmentManager
+        /*val logFragment = supportFragmentManager
             .findFragmentById(R.id.log_fragment) as LogFragment?
-        msgFilter.next = logFragment!!.logView
+        msgFilter.next = logFragment!!.logView*/
         gr.cs.btlamp.android.common.logger.Log.i(TAG, "Ready")
     }
 }

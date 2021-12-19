@@ -15,6 +15,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.larswerkman.holocolorpicker.ColorPicker
 import gr.cs.btlamp.*
+import gr.cs.btlamp.android.bluetoothchat.BluetoothService
 import gr.cs.btlamp.ui.TabbedActivity
 import kotlinx.android.synthetic.main.fragment_tabbed.view.*
 
@@ -24,7 +25,7 @@ import kotlinx.android.synthetic.main.fragment_tabbed.view.*
 class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClickListener {
 
     private lateinit var pageViewModel: PageViewModel
-    private val mService: MyBluetoothService?
+    private val mService: BluetoothService?
         get() = (activity as? TabbedActivity)?.mService
     private val power: Boolean?
         get() = activity?.findViewById<ToggleButton>(R.id.switchButton)?.isChecked
@@ -57,13 +58,14 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
             root.spinner_periodic_fun.setSelection(adapter.getPosition(SQUARE))
             root.spinner_periodic_fun.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                    when(parent.getItemAtPosition(pos).toString()) {
+                    // TODO
+                    /*when(parent.getItemAtPosition(pos).toString()) {
                         SINE -> mService?.btApi?.enableSine()
                         COSINE -> mService?.btApi?.enableCosine()
                         TANGENT -> mService?.btApi?.enableTangent()
                         SQUARE -> mService?.btApi?.enableSquare()
                         TRIANGLE -> mService?.btApi?.enableTriangle()
-                    }
+                    }*/
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
@@ -77,11 +79,12 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
             root.spinner_random_modes.setSelection(this.getPosition(RANDOM_COLOR_1))
             root.spinner_random_modes.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                    when(parent.getItemAtPosition(pos).toString()) {
+                    // TODO
+                    /*when(parent.getItemAtPosition(pos).toString()) {
                         RANDOM_COLOR_0 -> mService?.btApi?.enableRandomColorContinuous()
                         RANDOM_COLOR_1 -> mService?.btApi?.enableRandomColor()
                         RANDOM_COLOR_2 -> mService?.btApi?.enableRandomColor2()
-                    }
+                    }*/
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
@@ -97,7 +100,8 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
                     0
                 }
                 root.on_off_value_text.text = newProgress.toString()
-                mService?.btApi?.changePowerInterval(newProgress)
+                // TODO
+//                mService?.btApi?.changePowerInterval(newProgress)
             }
 
             override fun onStartTrackingTouch(p0: SeekBar?) {}
@@ -127,7 +131,8 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
 
 //        text.setTextColor(picker.color)
 //        textView_color.text = "%02x%02x%02x%02x".format(red, green, blue, alpha)
-        if (power == true) mService?.btApi?.changeColor(red, green, blue, alpha)
+        // TODO
+//        if (power == true) mService?.btApi?.changeColor(red, green, blue, alpha)
     }
 
     override fun onClick(view: View?) {
@@ -141,7 +146,8 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
                     }
                 } else {
                     getView()!!.spinner_random_modes.visibility = View.GONE
-                    mService?.btApi?.disableRandomColor()
+                    // TODO
+//                    mService?.btApi?.disableRandomColor()
                 }
             }
         }
