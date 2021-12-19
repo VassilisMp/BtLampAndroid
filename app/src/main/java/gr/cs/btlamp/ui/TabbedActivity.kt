@@ -15,7 +15,7 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import gr.cs.btlamp.*
 import gr.cs.btlamp.android.bluetoothchat.BluetoothService
-import gr.cs.btlamp.android.bluetoothchat.BluetoothService.STATE_CONNECTED
+import gr.cs.btlamp.android.bluetoothchat.BluetoothService.Companion.STATE_CONNECTED
 import gr.cs.btlamp.android.bluetoothchat.Constants
 import gr.cs.btlamp.android.common.logger.LogFragment
 import gr.cs.btlamp.android.common.logger.LogWrapper
@@ -28,6 +28,8 @@ import kotlinx.android.synthetic.main.activity_tabbed.*
 import kotlinx.android.synthetic.main.activity_tabbed.left_time_btn
 import kotlinx.android.synthetic.main.activity_tabbed.schedule_btn
 import kotlinx.android.synthetic.main.activity_tabbed.switchButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
 import java.util.*
@@ -131,12 +133,10 @@ class TabbedActivity : AppCompatActivity() {
         }
 //        lifecycleScope.launchWhenStarted { btPermission() }
         switchButton.setOnClickListener {
-            if (switchButton.isChecked)
-//                mService?.btApi?.enableLight()
-                mService?.write(arrayOf('L'.toByte()).toByteArray())
-            else
-//                mService?.btApi?.disableLight()
-                mService?.write(arrayOf('l'.toByte()).toByteArray())
+            if (switchButton.isChecked) {
+                GlobalScope.launch(Dispatchers.IO) { mService?.btApi?.enableLight() }
+            } else
+                GlobalScope.launch(Dispatchers.IO) { mService?.btApi?.disableLight() }
         }
         timePicker = object : TimePickerDialogCustom(
             this@TabbedActivity,
@@ -157,28 +157,25 @@ class TabbedActivity : AppCompatActivity() {
             override fun onClick(dialog: DialogInterface, which: Int) {
                 super.onClick(dialog, which)
                 if (which == BUTTON_POSITIVE && timerSwitch!!.isChecked) {
-                    // TODO
-                    /*mService?.btApi?.enableTimer(
+                    mService?.btApi?.enableTimer(
                         timeRemaining!!.first.toByte(),
                         timeRemaining!!.second.toByte()
-                    )?.invokeOnCompletion {
-                        if (it == null) {
-                            timer = object : CountDownTimer(
-                                timeToMillis(
-                                    timeRemaining!!.first,
-                                    timeRemaining!!.second
-                                ), 60000
-                            ) {
-                                override fun onTick(millisUntilFinished: Long) {
-                                    timeRemaining = millisToTime(millisUntilFinished)
-                                }
+                    )?.let {
+                        timer = object : CountDownTimer(
+                            timeToMillis(
+                                timeRemaining!!.first,
+                                timeRemaining!!.second
+                            ), 60000
+                        ) {
+                            override fun onTick(millisUntilFinished: Long) {
+                                timeRemaining = millisToTime(millisUntilFinished)
+                            }
 
-                                override fun onFinish() {
-                                    timerSwitch?.isChecked = false
-                                }
-                            }.start()
-                        }
-                    }*/
+                            override fun onFinish() {
+                                timerSwitch?.isChecked = false
+                            }
+                        }.start()
+                    }
                 } else if (which == BUTTON_NEGATIVE && timerSwitch!!.isChecked) {
                     if (timer == null) timerSwitch!!.toggle()
                 }
@@ -201,8 +198,7 @@ class TabbedActivity : AppCompatActivity() {
                             if (timer != null) {
                                 timer!!.cancel()
                                 timer = null
-                                    // TODO
-//                                mService?.btApi?.disableTimer()
+                                mService?.btApi?.disableTimer()
                             }
                             timePickerView.disable()
                             timePicker.updateTime(0, 0)

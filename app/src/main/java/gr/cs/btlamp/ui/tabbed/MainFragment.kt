@@ -58,20 +58,19 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
             root.spinner_periodic_fun.setSelection(adapter.getPosition(SQUARE))
             root.spinner_periodic_fun.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                    // TODO
-                    /*when(parent.getItemAtPosition(pos).toString()) {
+                    when(parent.getItemAtPosition(pos).toString()) {
                         SINE -> mService?.btApi?.enableSine()
                         COSINE -> mService?.btApi?.enableCosine()
                         TANGENT -> mService?.btApi?.enableTangent()
                         SQUARE -> mService?.btApi?.enableSquare()
                         TRIANGLE -> mService?.btApi?.enableTriangle()
-                    }*/
+                    }
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
             }
         }
-        ArrayAdapter(context!!, android.R.layout.simple_spinner_item, RANDOM_MODES).run {
+        ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, RANDOM_MODES).run {
             // Specify the layout to use when the list of choices appears
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             // Apply the adapter to the spinner
@@ -79,12 +78,11 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
             root.spinner_random_modes.setSelection(this.getPosition(RANDOM_COLOR_1))
             root.spinner_random_modes.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                    // TODO
-                    /*when(parent.getItemAtPosition(pos).toString()) {
+                    when(parent.getItemAtPosition(pos).toString()) {
                         RANDOM_COLOR_0 -> mService?.btApi?.enableRandomColorContinuous()
                         RANDOM_COLOR_1 -> mService?.btApi?.enableRandomColor()
                         RANDOM_COLOR_2 -> mService?.btApi?.enableRandomColor2()
-                    }*/
+                    }
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
@@ -100,8 +98,7 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
                     0
                 }
                 root.on_off_value_text.text = newProgress.toString()
-                // TODO
-//                mService?.btApi?.changePowerInterval(newProgress)
+                mService?.btApi?.changePowerInterval(newProgress)
             }
 
             override fun onStartTrackingTouch(p0: SeekBar?) {}
@@ -124,30 +121,28 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
     @SuppressLint("SetTextI18n")
     override fun onColorChanged(color: Int) {
         //gives the color when it's changed.
-        val red = Color.red(view!!.picker.color).toByte()
-        val green = Color.green(view!!.picker.color).toByte()
-        val blue = Color.blue(view!!.picker.color).toByte()
-        val alpha = Color.alpha(view!!.picker.color).toByte()
+        val red = Color.red(requireView().picker.color).toByte()
+        val green = Color.green(requireView().picker.color).toByte()
+        val blue = Color.blue(requireView().picker.color).toByte()
+        val alpha = Color.alpha(requireView().picker.color).toByte()
 
 //        text.setTextColor(picker.color)
 //        textView_color.text = "%02x%02x%02x%02x".format(red, green, blue, alpha)
-        // TODO
-//        if (power == true) mService?.btApi?.changeColor(red, green, blue, alpha)
+        if (power == true) mService?.btApi?.changeColor(red, green, blue, alpha)
     }
 
     override fun onClick(view: View?) {
         when(view) {
-            getView()!!.random_color -> {
-                if (getView()!!.random_color.isChecked) {
-                    getView()!!.spinner_random_modes.run {
+            requireView().random_color -> {
+                if (requireView().random_color.isChecked) {
+                    requireView().spinner_random_modes.run {
                         // reselect the selected item to run the proper btApi function
                         onItemSelectedListener?.onItemSelected(this, selectedView, selectedItemPosition, selectedItemId)
                         visibility = View.VISIBLE
                     }
                 } else {
-                    getView()!!.spinner_random_modes.visibility = View.GONE
-                    // TODO
-//                    mService?.btApi?.disableRandomColor()
+                    requireView().spinner_random_modes.visibility = View.GONE
+                    mService?.btApi?.disableRandomColor()
                 }
             }
         }
