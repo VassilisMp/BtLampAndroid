@@ -65,7 +65,7 @@ class TabbedActivity : AppCompatActivity() {
         Log.d(TAG, "BtPermissionLauncher")
         when (result.resultCode) {
             RESULT_OK -> {
-                mService = BluetoothService(this, mHandler)
+                mService = BluetoothService.getService(mHandler)
                 connectDevice()
             }
             RESULT_CANCELED -> {
@@ -104,7 +104,7 @@ class TabbedActivity : AppCompatActivity() {
             btPermResultLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
             // Otherwise, setup the chat session
         } else if (mService == null) {
-            mService = BluetoothService(this, mHandler)
+            mService = BluetoothService.getService(mHandler)
             connectDevice()
         } else if (mService!!.state != STATE_CONNECTED) {
 
@@ -134,9 +134,9 @@ class TabbedActivity : AppCompatActivity() {
 //        lifecycleScope.launchWhenStarted { btPermission() }
         switchButton.setOnClickListener {
             if (switchButton.isChecked) {
-                GlobalScope.launch(Dispatchers.IO) { mService?.btApi?.enableLight() }
+                mService?.btApi?.enableLight()
             } else
-                GlobalScope.launch(Dispatchers.IO) { mService?.btApi?.disableLight() }
+                mService?.btApi?.disableLight()
         }
         timePicker = object : TimePickerDialogCustom(
             this@TabbedActivity,

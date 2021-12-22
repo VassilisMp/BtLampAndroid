@@ -153,7 +153,7 @@ public class BluetoothActivity extends AppCompatActivity {
         });
 
         // Initialize the BluetoothChatService to perform bluetooth connections
-        mService = new BluetoothService(this, mHandler);
+        //mService = new BluetoothService(this, mHandler);
 
         // Initialize the buffer for outgoing messages
         mOutStringBuffer = new StringBuffer();
