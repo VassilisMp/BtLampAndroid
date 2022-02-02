@@ -1,14 +1,15 @@
 package gr.cs.btlamp.ui.tabbed
 
+import android.graphics.Color.*
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.larswerkman.holocolorpicker.ColorPicker
 import gr.cs.btlamp.R
+import gr.cs.btlamp.android.bluetoothchat.BluetoothService
 import gr.cs.btlamp.ui.Color
 import gr.cs.btlamp.ui.ColorsAdapter
 import kotlinx.android.synthetic.main.fragment_sequence.view.*
@@ -78,6 +79,26 @@ class SequenceFragment : Fragment() {
             adapter!!.notifyDataSetChanged()*/
 //            colorArrayAdapter.add(Color(currentColor))
 //            colorArrayAdapter.notifyDataSetChanged()
+        }
+
+        // save picked colors and send to arduino to play
+        with(root.findViewById<SwitchMaterial>(R.id.save_button)) {
+            save_button.setOnClickListener {
+                with(BluetoothService.getService().btApi) {
+                    if (save_button.isChecked)
+                        submitColorSequence(
+                            *colorsAdapter.colorList.flatMap {
+                                byteArrayOf(
+                                    red(it.color).toByte(),
+                                    green(it.color).toByte(),
+                                    blue(it.color).toByte(),
+                                    alpha(it.color).toByte()
+                                ).asIterable()
+                            }.toByteArray()
+                        )
+                    else removeColorSequence()
+                }
+            }
         }
         return root
     }

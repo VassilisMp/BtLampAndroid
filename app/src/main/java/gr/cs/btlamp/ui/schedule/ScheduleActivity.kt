@@ -18,6 +18,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import gr.cs.btlamp.MyBluetoothService
 import gr.cs.btlamp.R
+import gr.cs.btlamp.android.bluetoothchat.BluetoothService
 import gr.cs.btlamp.ui.schedule.RepeatActivity.Companion.once
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.activity_add_schedule.*
@@ -36,7 +37,8 @@ class ScheduleActivity : AppCompatActivity() {
         var time: Pair<Int, Int>,
         var switch: Boolean,
         var days: Array<DayOfWeek>,
-        val id: String = UUID.randomUUID().toString()
+        val id: String = UUID.randomUUID().toString(),
+        var activated: Boolean = false
     ): Parcelable {
         fun getHour() = time.first
         fun getMinute() = time.second
@@ -72,10 +74,7 @@ class ScheduleActivity : AppCompatActivity() {
         schedules = schedules.toMutableList()
         putString(schedules_key, schedules.toJson())
         apply()
-        // TODO fix BluetoothService first
-        /*with(MyBluetoothService().BtApi()) {
-            removeSchedule(schedule)
-        }*/
+        BluetoothService.getService().btApi.removeSchedule(schedule)
     }
 
     private lateinit var scheduleListAdapter: ScheduleListAdapter

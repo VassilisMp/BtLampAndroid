@@ -22,6 +22,7 @@ import gr.cs.btlamp.android.common.logger.LogWrapper
 import gr.cs.btlamp.android.common.logger.MessageOnlyLogFilter
 import gr.cs.btlamp.customViews.TimePickerDialogCustom
 import gr.cs.btlamp.ui.schedule.ScheduleActivity
+import gr.cs.btlamp.ui.schedule.scheduleListFromJson
 import gr.cs.btlamp.ui.tabbed.SectionsPagerAdapter
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_tabbed.*
@@ -95,6 +96,7 @@ class TabbedActivity : AppCompatActivity() {
         }
     }*/
 
+    //TODO doesn 't show not connected on start
     override fun onStart() {
         super.onStart()
         initializeLogging()
@@ -157,10 +159,11 @@ class TabbedActivity : AppCompatActivity() {
             override fun onClick(dialog: DialogInterface, which: Int) {
                 super.onClick(dialog, which)
                 if (which == BUTTON_POSITIVE && timerSwitch!!.isChecked) {
-                    mService?.btApi?.enableTimer(
-                        timeRemaining!!.first.toByte(),
-                        timeRemaining!!.second.toByte()
-                    )?.let {
+                    mService?.ifConnected {
+                        btApi.enableTimer(
+                            timeRemaining!!.first.toByte(),
+                            timeRemaining!!.second.toByte()
+                        )
                         timer = object : CountDownTimer(
                             timeToMillis(
                                 timeRemaining!!.first,
@@ -338,5 +341,15 @@ class TabbedActivity : AppCompatActivity() {
             .findFragmentById(R.id.log_fragment) as LogFragment?
         msgFilter.next = logFragment!!.logView*/
         gr.cs.btlamp.android.common.logger.Log.i(TAG, "Ready")
+    }
+
+    // must create a splash screen activity
+    private fun initializeDataInArduino() = GlobalScope.launch(Dispatchers.IO) {
+        val schedulesJson =
+            getPreferences(MODE_PRIVATE).getString(ScheduleActivity.schedules_key, "")!!
+        // send to arduino only the active schedules
+        scheduleListFromJson(schedulesJson)?.filter { it.activated }?.forEach {
+            BluetoothService.getService().btApi.addSchedule(it)
+        }
     }
 }

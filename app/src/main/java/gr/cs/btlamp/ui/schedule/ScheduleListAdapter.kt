@@ -15,6 +15,7 @@ import at.markushi.ui.CircleButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import gr.cs.btlamp.MyBluetoothService
 import gr.cs.btlamp.R
+import gr.cs.btlamp.android.bluetoothchat.BluetoothService
 import gr.cs.btlamp.ui.schedule.AddScheduleActivity.Companion.OFF
 import gr.cs.btlamp.ui.schedule.AddScheduleActivity.Companion.ON
 import kotlinx.android.synthetic.main.schedule_item.view.*
@@ -40,8 +41,8 @@ class ScheduleListAdapter(
             switchV.text = schedule.switch.run { if(this) ON else OFF }
             days.text = schedule.daysToString()
             switch.setOnCheckedChangeListener { compoundButton, b ->
-                TODO("must fix BluetoothService first")
-                with(MyBluetoothService().BtApi()) {
+                schedule.activated = b
+                with(BluetoothService.getService().btApi) {
                     if (b) addSchedule(schedule)
                     else removeSchedule(schedule)
                 }

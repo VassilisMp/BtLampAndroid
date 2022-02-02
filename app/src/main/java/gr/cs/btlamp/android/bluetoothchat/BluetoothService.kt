@@ -227,6 +227,13 @@ class BluetoothService(handler: Handler? = null) {
         }
         // Perform the write unsynchronized
         r!!.write(out)
+        val s = out.joinToString(prefix = "(", postfix = ")", separator = ", ") {
+            //String.format("%3d", it.toUByte().toString())
+            it.toUByte().toString()
+        } + ", " + out.joinToString(prefix = "(", postfix = ")", separator = ", ") {
+            it.toInt().toChar().toString()
+        }
+        Log.d("BluetoothService: write: ", s)
         return null
     }
 
@@ -548,12 +555,17 @@ class BluetoothService(handler: Handler? = null) {
         state = STATE_NONE
         mNewState = state
         mHandler = handler
+        this.ifConnected {
+            println("haha")
+        }
     }
 
     @JvmName("writeVarArgs")
     fun write(vararg elements: Byte) = write(elements  + '\n'.toByte())
 
     val btApi: BtApi by lazy { BtApi() }
+
+    inline fun ifConnected(block: BluetoothService.() -> Unit) = block.invoke(this)
 
     // TODO finish API
     inner class BtApi {
@@ -570,6 +582,7 @@ class BluetoothService(handler: Handler? = null) {
         fun enableRandomColor2() = write(ENABLE_RANDOM_COLOR, 2.toByte())
         fun disableRandomColor() = write(DISABLE_RANDOM_COLOR)
         fun submitColorSequence(vararg colors: Byte) = write(SUBMIT_COLOR_SEQUENCE, *colors)
+        fun removeColorSequence() = write(REMOVE_COLOR_SEQUENCE)
         fun enableLight() = write(ENABLE_LIGHT)
         fun disableLight() = write(DISABLE_LIGHT)
         fun enablePump() = write(ENABLE_PUMP)
@@ -607,6 +620,7 @@ private const val CHANGE_POWER_INTERVAL = 'i'.toByte()
 private const val ENABLE_RANDOM_COLOR = 'R'.toByte()
 private const val DISABLE_RANDOM_COLOR = 'r'.toByte()
 private const val SUBMIT_COLOR_SEQUENCE = 's'.toByte()
+private const val REMOVE_COLOR_SEQUENCE = 'S'.toByte()
 private const val ENABLE_LIGHT = 'L'.toByte()
 private const val DISABLE_LIGHT = 'l'.toByte()
 private const val ENABLE_PUMP = 'P'.toByte()

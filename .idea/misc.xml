@@ -15,7 +15,9 @@
         <entry key="app/src/main/res/layout/activity_repeat.xml" value="0.21614583333333334" />
         <entry key="app/src/main/res/layout/activity_schedule.xml" value="0.21510416666666668" />
         <entry key="app/src/main/res/layout/activity_tabbed.xml" value="0.1921875" />
-        <entry key="app/src/main/res/layout/fragment_tabbed.xml" value="0.17" />
+        <entry key="app/src/main/res/layout/color_layout.xml" value="0.33695652173913043" />
+        <entry key="app/src/main/res/layout/fragment_sequence.xml" value="0.365036231884058" />
+        <entry key="app/src/main/res/layout/fragment_tabbed.xml" value="0.4" />
         <entry key="app/src/main/res/layout/schedule_item.xml" value="0.33" />
         <entry key="app/src/main/res/layout/schedule_itemview.xml" value="0.21510416666666668" />
         <entry key="app/src/main/res/layout/schedule_layout.xml" value="0.26666666666666666" />
@@ -25,7 +27,7 @@
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">

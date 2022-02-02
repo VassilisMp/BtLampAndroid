@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
     android:orientation="horizontal"
     tools:context=".ui.SequencePickerActivity">
 
@@ -45,6 +44,7 @@
         android:layout_height="wrap_content"
         android:text="pick"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.30"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/opacitybar" />
 
@@ -60,6 +60,17 @@
         app:layout_constraintTop_toBottomOf="@+id/pick_button"
         tools:listitem="@layout/color_layout" />
 
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/save_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="use sequence"
+        app:layout_constraintBottom_toTopOf="@+id/colors_rv"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.75"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/opacitybar" />
     <!--<ListView
         android:id="@+id/listView"
         android:layout_width="0dp"
