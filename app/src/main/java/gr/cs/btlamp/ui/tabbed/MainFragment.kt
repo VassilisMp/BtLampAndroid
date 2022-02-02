@@ -7,10 +7,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.SeekBar
-import android.widget.ToggleButton
+import android.widget.*
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.larswerkman.holocolorpicker.ColorPicker
@@ -46,6 +43,16 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
         super.onDetach()
         mService = null
     }*/
+
+    override fun onResume() {
+        super.onResume()
+        if (BluetoothService.getService().btApi.colorSeqEnabled)
+            requireView().spinner_random_modes.visibility = View.VISIBLE
+        else if (!requireView().random_color.isChecked)
+            requireView().spinner_random_modes.visibility = View.GONE
+        if (BluetoothService.getService().btApi.randomColorEnabled && !requireView().random_color.isChecked)
+            requireView().random_color.toggle()
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val root = inflater.inflate(R.layout.fragment_tabbed, container, false)
@@ -134,6 +141,7 @@ class MainFragment : Fragment(), ColorPicker.OnColorChangedListener, View.OnClic
     override fun onClick(view: View?) {
         when(view) {
             requireView().random_color -> {
+                // TODO set colorSeqEnabled state to false if enabled in BluetoothService when enabled
                 if (requireView().random_color.isChecked) {
                     requireView().spinner_random_modes.run {
                         // reselect the selected item to run the proper btApi function

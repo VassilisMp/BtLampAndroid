@@ -1,18 +1,3 @@
-/*
- * Copyright (C) 2014 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package gr.cs.btlamp.android.bluetoothchat
 
 import android.bluetooth.BluetoothAdapter
@@ -222,11 +207,9 @@ class BluetoothService(handler: Handler? = null) {
         var r: ConnectedThread?
         // Synchronize a copy of the ConnectedThread
         synchronized(this) {
-            if (state != STATE_CONNECTED) return out
+            if (state != STATE_CONNECTED) return null
             r = mConnectedThread
         }
-        // Perform the write unsynchronized
-        r!!.write(out)
         val s = out.joinToString(prefix = "(", postfix = ")", separator = ", ") {
             //String.format("%3d", it.toUByte().toString())
             it.toUByte().toString()
@@ -234,7 +217,9 @@ class BluetoothService(handler: Handler? = null) {
             it.toInt().toChar().toString()
         }
         Log.d("BluetoothService: write: ", s)
-        return null
+        // Perform the write unsynchronized
+        r!!.write(out)
+        return out
     }
 
     /**
@@ -467,16 +452,16 @@ class BluetoothService(handler: Handler? = null) {
          *
          * @param buffer The bytes to write
          */
-        fun write(buffer: ByteArray?) {
-            try {
-                mmOutStream!!.write(buffer)
+        fun write(buffer: ByteArray?): ByteArray? = try {
+            mmOutStream!!.write(buffer)
 
-                // Share the sent message back to the UI Activity
-                mHandler?.obtainMessage(Constants.MESSAGE_WRITE, -1, -1, buffer)
-                    ?.sendToTarget()
-            } catch (e: IOException) {
-                Log.e(TAG, "Exception during write", e)
-            }
+            // Share the sent message back to the UI Activity
+            mHandler?.obtainMessage(Constants.MESSAGE_WRITE, -1, -1, buffer)
+                ?.sendToTarget()
+            buffer
+        } catch (e: IOException) {
+            Log.e(TAG, "Exception during write", e)
+            null
         }
 
         fun cancel() {
@@ -582,7 +567,8 @@ class BluetoothService(handler: Handler? = null) {
         fun enableRandomColor2() = write(ENABLE_RANDOM_COLOR, 2.toByte())
         fun disableRandomColor() = write(DISABLE_RANDOM_COLOR)
         fun submitColorSequence(vararg colors: Byte) = write(SUBMIT_COLOR_SEQUENCE, *colors)
-        fun removeColorSequence() = write(REMOVE_COLOR_SEQUENCE)
+            ?.apply{ colorSeqEnabled = true; randomColorEnabled = false }
+        fun removeColorSequence() = write(REMOVE_COLOR_SEQUENCE)?.apply { colorSeqEnabled = false }
         fun enableLight() = write(ENABLE_LIGHT)
         fun disableLight() = write(DISABLE_LIGHT)
         fun enablePump() = write(ENABLE_PUMP)
@@ -610,6 +596,10 @@ class BluetoothService(handler: Handler? = null) {
             removeSchedule(schedule)
             addSchedule(schedule)
         }
+
+        // ArduinoLamp States
+        var colorSeqEnabled: Boolean = false
+        var randomColorEnabled: Boolean = false
     }
 
 }
